@@ -31,7 +31,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-white to-secondary/30 p-4">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-primary via-white to-secondary/30 p-4 overflow-hidden relative">
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-accent/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
