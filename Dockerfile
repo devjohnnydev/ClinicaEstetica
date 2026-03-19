@@ -36,5 +36,5 @@ WORKDIR /app/backend
 # Expose port
 EXPOSE 8000
 
-# Run with gunicorn + uvicorn workers (Railway sets $PORT)
-CMD gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 120
+# Run with a shell script that first initializes the database then starts gunicorn
+CMD sh -c "python -c \"from database import engine; from main import Base; Base.metadata.create_all(bind=engine)\" && gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 120"

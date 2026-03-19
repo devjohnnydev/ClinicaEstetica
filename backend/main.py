@@ -17,8 +17,7 @@ from services.pdf import generate_anamnese_pdf
 
 from routers import auth, pacientes, modelos, anamneses
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Tables are now created via a script before gunicorn starts
 
 app = FastAPI(title="Clínica de Estética - API", version="1.0.0")
 
