@@ -4,7 +4,8 @@ sqlalchemy
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-pydantic[email-validator]
+pydantic[email]
+email-validator
 pydantic-settings
 aiofiles
 reportlab
