@@ -163,7 +163,7 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="📅 Novo Agendamento">
+    <Modal open={open} onClose={onClose} title="Novo Agendamento">
       <div className="space-y-4">
         {error && <div className="p-3 bg-red-50 text-red-500 rounded-xl text-sm">{error}</div>}
         <ClientPicker value={form.agenda_cliente_id} onChange={v => setForm(f => ({ ...f, agenda_cliente_id: v }))} clients={clients} setClients={setClients} />
@@ -191,7 +191,7 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
         <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
         <div className="flex justify-end gap-3 pt-2">
           <button className={btnSecondary} onClick={onClose}>Cancelar</button>
-          <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : '✨ Agendar'}</button>
+          <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Agendar'}</button>
         </div>
       </div>
     </Modal>
@@ -223,7 +223,7 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
         <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[ag.status] || ''}`}>{statusLabels[ag.status]}</div>
         <div className={`p-4 rounded-2xl border ${colorCls}`}>
           <p className="font-heading font-semibold">{ag.servico?.nome || '—'}</p>
-          <p className="text-xs mt-1">{isEstetica ? '💆 Estética' : '💅 Unha'}</p>
+          <p className="text-xs mt-1">{isEstetica ? 'Estética' : 'Unha'}</p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><span className="text-dark/40">Cliente:</span><p className="font-medium">{ag.cliente?.nome || '—'}</p></div>
@@ -233,10 +233,10 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
         </div>
         {ag.observacoes && <div className="text-sm"><span className="text-dark/40">Obs:</span><p>{ag.observacoes}</p></div>}
         <div className="flex flex-wrap gap-2 pt-3 border-t border-primary">
-          {canConfirm && <button className={btnPrimary} onClick={() => doAction(confirmarAgendamento)}>✅ Confirmar</button>}
-          {canComplete && <button className="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl text-sm font-medium hover:bg-emerald-100" onClick={() => doAction(concluirAgendamento)}>✔ Concluir</button>}
-          {canMarkNoShow && <button className="px-4 py-2 bg-orange-50 text-orange-500 border border-orange-200 rounded-2xl text-sm font-medium hover:bg-orange-100" onClick={() => doAction(naoCompareceu)}>⚠ Não Compareceu</button>}
-          {canCancel && <button className={btnDanger} onClick={() => doAction(cancelarAgendamento)}>✕ Cancelar</button>}
+          {canConfirm && <button className={btnPrimary} onClick={() => doAction(confirmarAgendamento)}>Confirmar</button>}
+          {canComplete && <button className="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl text-sm font-medium hover:bg-emerald-100" onClick={() => doAction(concluirAgendamento)}>Concluir</button>}
+          {canMarkNoShow && <button className="px-4 py-2 bg-orange-50 text-orange-500 border border-orange-200 rounded-2xl text-sm font-medium hover:bg-orange-100" onClick={() => doAction(naoCompareceu)}>Não Compareceu</button>}
+          {canCancel && <button className={btnDanger} onClick={() => doAction(cancelarAgendamento)}>Cancelar Horário</button>}
         </div>
       </div>
     </Modal>
@@ -266,7 +266,7 @@ export function BloqueioModal({ open, onClose, onSave, profissionais: profList }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="⛔ Bloquear Horário">
+    <Modal open={open} onClose={onClose} title="Bloquear Horário">
       <div className="space-y-4">
         <div><label className={labelCls}>Profissional *</label><select className={inputCls} value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}><option value="">Selecione...</option>{profs.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
         <div><label className={labelCls}>Tipo</label><select className={inputCls} value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}><option value="ausencia">Ausência</option><option value="atestado">Atestado</option><option value="intervalo">Intervalo</option></select></div>
@@ -311,7 +311,7 @@ export function ListaEsperaModal({ open, onClose, onSave }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="⏳ Adicionar à Lista de Espera">
+    <Modal open={open} onClose={onClose} title="Adicionar à Lista de Espera">
       <div className="space-y-4">
         <ClientPicker value={form.agenda_cliente_id} onChange={v => setForm(f => ({ ...f, agenda_cliente_id: v }))} clients={clients} setClients={setClients} />
         <div><label className={labelCls}>Procedimento desejado</label><select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}><option value="">Qualquer</option>{servicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>

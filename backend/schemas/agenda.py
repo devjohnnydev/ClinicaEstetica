@@ -69,12 +69,14 @@ class ProfissionalCreate(BaseModel):
     nome: str
     especialidade: Optional[str] = None
     telefone: Optional[str] = None
+    email: Optional[str] = None
 
 
 class ProfissionalUpdate(BaseModel):
     nome: Optional[str] = None
     especialidade: Optional[str] = None
     telefone: Optional[str] = None
+    email: Optional[str] = None
     ativo: Optional[bool] = None
 
 
@@ -87,7 +89,9 @@ class ProfissionalResponse(BaseModel):
     nome: str
     especialidade: Optional[str] = None
     telefone: Optional[str] = None
+    email: Optional[str] = None
     ativo: bool
+    user_id: Optional[int] = None
     servicos: List[ServicoResponse] = []
     created_at: Optional[datetime] = None
 

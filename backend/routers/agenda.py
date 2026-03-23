@@ -463,7 +463,30 @@ def criar_profissional(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    prof = Profissional(**payload.dict())
+    from services.auth import get_password_hash
+
+    prof_data = payload.dict()
+    user_id = None
+
+    # Auto-create a User login if email is provided
+    if payload.email:
+        existing = db.query(User).filter(User.email == payload.email).first()
+        if existing:
+            user_id = existing.id
+        else:
+            # Generate default password: first name lowercase + "123"
+            first_name = payload.nome.strip().split()[0].lower()
+            default_password = f"{first_name}123"
+            new_user = User(
+                email=payload.email,
+                password_hash=get_password_hash(default_password),
+                nome=payload.nome,
+            )
+            db.add(new_user)
+            db.flush()
+            user_id = new_user.id
+
+    prof = Profissional(**prof_data, user_id=user_id)
     db.add(prof)
     db.commit()
     db.refresh(prof)

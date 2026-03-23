@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiPlus, FiCalendar, FiEdit2 } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiCalendar, FiEdit2, FiScissors, FiUser, FiClock } from 'react-icons/fi';
 import {
   getAgendaClientes, criarAgendaCliente, atualizarAgendaCliente,
   getClienteAgendamentos, getPacientesDisponiveis,
@@ -127,7 +127,7 @@ export function ProcedimentosTab() {
   return (
     <div className="animate-fadeIn">
       <div className="flex gap-2 mb-4">
-        {[['servicos', '💆 Serviços'], ['profissionais', '👩‍⚕️ Profissionais'], ['espera', '⏳ Lista de Espera']].map(([key, label]) => (
+        {[['servicos', 'Serviços'], ['profissionais', 'Profissionais'], ['espera', 'Lista de Espera']].map(([key, label]) => (
           <button key={key} onClick={() => setSubTab(key)}
             className={`px-4 py-2 rounded-2xl text-sm font-medium transition-all ${subTab === key ? 'bg-gradient-to-r from-accent to-accent-dark text-white shadow-card' : 'bg-white text-dark/60 hover:bg-primary border border-secondary/30'}`}
           >{label}</button>
@@ -179,8 +179,8 @@ function ServicosSubTab() {
       <div className="grid gap-3">
         {servicos.map(s => (
           <div key={s.id} className={`p-4 bg-white rounded-2xl shadow-card border-l-4 ${s.categoria === 'estetica' ? 'border-accent' : 'border-nail'} flex items-center gap-4 ${!s.ativo ? 'opacity-50' : ''}`}>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${s.categoria === 'estetica' ? 'bg-accent' : 'bg-nail'}`}>
-              {s.categoria === 'estetica' ? '💆' : '💅'}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.categoria === 'estetica' ? 'bg-accent/15 text-accent-dark' : 'bg-nail/15 text-nail-dark'}`}>
+              <FiScissors size={18} />
             </div>
             <div className="flex-1">
               <p className="font-heading font-semibold text-sm">{s.nome}</p>
@@ -199,7 +199,7 @@ function ProfissionaisSubTab() {
   const [servicos, setServicos] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ nome: '', especialidade: '', telefone: '' });
+  const [form, setForm] = useState({ nome: '', especialidade: '', telefone: '', email: '' });
   const [linkId, setLinkId] = useState(null);
   const [linkIds, setLinkIds] = useState([]);
 
@@ -221,17 +221,19 @@ function ProfissionaisSubTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', especialidade: '', telefone: '' }); }}>
+        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', especialidade: '', telefone: '', email: '' }); }}>
           <FiPlus className="inline mr-1" size={14} /> Novo Profissional
         </button>
       </div>
       {showForm && (
         <div className="p-5 bg-white rounded-2xl shadow-card border border-secondary/30 space-y-3 animate-scaleIn">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div><label className={labelCls}>Nome *</label><input className={inputCls} value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
+            <div><label className={labelCls}>Email (gera login)</label><input className={inputCls} type="email" placeholder="profissional@clinica.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div><label className={labelCls}>Especialidade</label><input className={inputCls} value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} /></div>
             <div><label className={labelCls}>Telefone</label><input className={inputCls} value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
           </div>
+          {!editId && form.email && <p className="text-xs text-accent bg-accent/10 px-3 py-1.5 rounded-xl">Um login será criado automaticamente. Senha padrão: primeiro nome em minúsculo + 123</p>}
           <div className="flex gap-3"><button className={btnPrimary} onClick={handleSave}>Salvar</button><button className={btnSecondary} onClick={() => setShowForm(false)}>Cancelar</button></div>
         </div>
       )}
@@ -245,7 +247,7 @@ function ProfissionaisSubTab() {
               {p.servicos?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{p.servicos.map(s => (<span key={s.id} className={`text-xs px-2 py-0.5 rounded-full ${s.categoria === 'estetica' ? 'bg-accent/10 text-accent' : 'bg-nail/10 text-nail-dark'}`}>{s.nome}</span>))}</div>}
             </div>
             <button className="text-accent hover:text-accent-dark text-xs" onClick={() => { setLinkId(p.id); setLinkIds(p.servicos?.map(s => s.id) || []); }}>Vincular Serviços</button>
-            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(p.id); setForm({ nome: p.nome, especialidade: p.especialidade || '', telefone: p.telefone || '' }); setShowForm(true); }}><FiEdit2 size={14} /></button>
+            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(p.id); setForm({ nome: p.nome, especialidade: p.especialidade || '', telefone: p.telefone || '', email: p.email || '' }); setShowForm(true); }}><FiEdit2 size={14} /></button>
           </div>
         ))}
       </div>
@@ -274,7 +276,7 @@ function ListaEsperaSubTab() {
     <div className="space-y-3">
       {items.map(le => (
         <div key={le.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">⏳</div>
+          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500"><FiClock size={16} /></div>
           <div className="flex-1">
             <p className="font-heading font-semibold text-sm">{le.cliente?.nome || '—'}</p>
             <p className="text-xs text-dark/40">

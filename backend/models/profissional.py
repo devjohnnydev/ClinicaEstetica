@@ -19,9 +19,12 @@ class Profissional(Base):
     nome = Column(String, nullable=False, index=True)
     especialidade = Column(String, nullable=True)
     telefone = Column(String(20), nullable=True)
+    email = Column(String, nullable=True)
     ativo = Column(Boolean, default=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)
 
+    user = relationship("User", foreign_keys=[user_id])
     servicos = relationship(
         "Servico",
         secondary="profissional_servicos",
@@ -30,3 +33,4 @@ class Profissional(Base):
     )
     agendamentos = relationship("Agendamento", back_populates="profissional")
     bloqueios = relationship("BloqueioHorario", back_populates="profissional")
+
