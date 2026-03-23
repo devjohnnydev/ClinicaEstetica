@@ -66,4 +66,53 @@ export const downloadPdf = (anamneseId) => api.get(`/api/anamneses/${anamneseId}
 // Upload base URL for images  
 export const UPLOAD_URL = `${API_BASE}/uploads`;
 
+// ─── Agenda ─────────────────────────────────────────────────────
+// Agendamentos
+export const getAgendamentos = (params) => api.get('/api/agenda/agendamentos', { params });
+export const getAgendamento = (id) => api.get(`/api/agenda/agendamentos/${id}`);
+export const criarAgendamento = (data) => api.post('/api/agenda/agendamentos', data);
+export const atualizarAgendamento = (id, data) => api.put(`/api/agenda/agendamentos/${id}`, data);
+export const cancelarAgendamento = (id) => api.post(`/api/agenda/agendamentos/${id}/cancelar`);
+export const naoCompareceu = (id) => api.post(`/api/agenda/agendamentos/${id}/nao-compareceu`);
+export const concluirAgendamento = (id) => api.post(`/api/agenda/agendamentos/${id}/concluir`);
+export const confirmarAgendamento = (id) => api.post(`/api/agenda/agendamentos/${id}/confirmar`);
+export const autoConcluir = () => api.post('/api/agenda/agendamentos/auto-concluir');
+
+// Clientes da Agenda
+export const getAgendaClientes = (busca) => api.get('/api/agenda/clientes', { params: { busca } });
+export const criarAgendaCliente = (data) => api.post('/api/agenda/clientes', data);
+export const getAgendaCliente = (id) => api.get(`/api/agenda/clientes/${id}`);
+export const atualizarAgendaCliente = (id, data) => api.put(`/api/agenda/clientes/${id}`, data);
+export const getClienteAgendamentos = (id) => api.get(`/api/agenda/clientes/${id}/agendamentos`);
+export const getPacientesDisponiveis = (busca) => api.get('/api/agenda/pacientes-disponiveis', { params: { busca } });
+
+// Serviços
+export const getServicos = (params) => api.get('/api/agenda/servicos', { params });
+export const criarServico = (data) => api.post('/api/agenda/servicos', data);
+export const atualizarServico = (id, data) => api.put(`/api/agenda/servicos/${id}`, data);
+export const deletarServico = (id) => api.delete(`/api/agenda/servicos/${id}`);
+
+// Profissionais
+export const getProfissionais = (params) => api.get('/api/agenda/profissionais', { params });
+export const criarProfissional = (data) => api.post('/api/agenda/profissionais', data);
+export const atualizarProfissional = (id, data) => api.put(`/api/agenda/profissionais/${id}`, data);
+export const vincularServicos = (id, data) => api.post(`/api/agenda/profissionais/${id}/servicos`, data);
+
+// Bloqueios
+export const getBloqueios = (params) => api.get('/api/agenda/bloqueios', { params });
+export const criarBloqueio = (data) => api.post('/api/agenda/bloqueios', data);
+export const deletarBloqueio = (id) => api.delete(`/api/agenda/bloqueios/${id}`);
+
+// Lista de Espera
+export const getListaEspera = (params) => api.get('/api/agenda/lista-espera', { params });
+export const criarListaEspera = (data) => api.post('/api/agenda/lista-espera', data);
+export const atualizarListaEspera = (id, data) => api.put(`/api/agenda/lista-espera/${id}`, data);
+export const deletarListaEspera = (id) => api.delete(`/api/agenda/lista-espera/${id}`);
+export const agendarDaListaEspera = (id, data) => api.post(`/api/agenda/lista-espera/${id}/agendar`, data);
+
+// Dashboard & Aniversariantes
+export const getAgendaDashboard = () => api.get('/api/agenda/dashboard');
+export const getAniversariantes = (mes) => api.get('/api/agenda/aniversariantes', { params: { mes } });
+export const getPendentesConfirmacao = () => api.get('/api/agenda/pendentes-confirmacao');
+
 export default api;

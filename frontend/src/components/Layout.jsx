@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FiHome, FiUsers, FiFileText, FiClipboard, FiPlusCircle, FiMenu, FiX, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiUsers, FiFileText, FiClipboard, FiPlusCircle, FiCalendar, FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 
 const navItems = [
   { to: '/', icon: FiHome, label: 'Dashboard' },
+  { to: '/agenda', icon: FiCalendar, label: 'Agenda' },
   { to: '/pacientes', icon: FiUsers, label: 'Pacientes' },
   { to: '/modelos', icon: FiClipboard, label: 'Modelos de Anamnese' },
   { to: '/anamnese/nova', icon: FiPlusCircle, label: 'Nova Anamnese' },

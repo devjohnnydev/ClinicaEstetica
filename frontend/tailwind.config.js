@@ -11,6 +11,8 @@ export default {
         secondary: '#E8D5C4',
         accent: '#C6A77D',
         'accent-dark': '#A8874F',
+        nail: '#E8A0BF',
+        'nail-dark': '#D484A8',
         dark: '#3A3A3A',
         soft: '#F8F8F8',
       },

@@ -76,3 +76,22 @@ body {
 .signature-canvas:hover {
   border-color: #C6A77D;
 }
+
+/* ─── Agenda / Calendar ────────────────────────────────────────── */
+.agenda-grid::-webkit-scrollbar { width: 4px; }
+.agenda-grid::-webkit-scrollbar-thumb { background: #E8D5C4; border-radius: 2px; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.25s ease-out forwards;
+}
+
+/* Week view horizontal scroll on mobile */
+@media (max-width: 768px) {
+  .week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .week-scroll > div { min-width: 700px; }
+}

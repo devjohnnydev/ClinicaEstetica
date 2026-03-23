@@ -12,12 +12,21 @@ from models.modelo_anamnese import ModeloAnamnese, CampoModelo
 from models.anamnese import Anamnese, Resposta
 from models.assinatura import Assinatura
 from models.anexo import Anexo
+# Agenda models (import so tables are created)
+from models.agenda_cliente import AgendaCliente
+from models.servico import Servico
+from models.profissional import Profissional, ProfissionalServico
+from models.agendamento import Agendamento
+from models.bloqueio_horario import BloqueioHorario
+from models.lista_espera import ListaEspera
 from services.auth import get_password_hash, get_current_user
 from services.pdf import generate_anamnese_pdf
 
 from routers import auth, pacientes, modelos, anamneses
+from routers import agenda as agenda_router
 
-# Tables are now created via a script before gunicorn starts
+# Create all tables (including new agenda tables)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Clínica de Estética - API", version="1.0.0")
 
@@ -39,6 +48,7 @@ app.include_router(auth.router)
 app.include_router(pacientes.router)
 app.include_router(modelos.router)
 app.include_router(anamneses.router)
+app.include_router(agenda_router.router)
 
 
 # PDF Download endpoint
