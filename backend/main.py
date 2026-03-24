@@ -121,21 +121,46 @@ def dashboard_stats(
 
 
 @app.on_event("startup")
-def create_default_user():
-    """Create a default admin user if none exists."""
+def run_migrations_and_seed():
+    """Add missing columns to existing tables + create default admin user."""
     from database import SessionLocal
+    from sqlalchemy import text
+
     db = SessionLocal()
     try:
+        # ── Column migrations (safe: ignores if column already exists) ──
+        migrations = [
+            # profissionais table
+            ("profissionais", "email", "VARCHAR"),
+            ("profissionais", "user_id", "INTEGER REFERENCES users(id)"),
+            # users table
+            ("users", "perfil", "VARCHAR DEFAULT 'admin'"),
+            ("users", "profissional_id", "INTEGER"),
+        ]
+        for table, col, col_type in migrations:
+            try:
+                db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                db.commit()
+                print(f"  ✅ Coluna {table}.{col} adicionada")
+            except Exception:
+                db.rollback()  # column already exists, that's fine
+
+        # ── Default admin user ───────────────────────────────────────
         existing = db.query(User).first()
         if not existing:
             user = User(
                 email="admin@clinica.com",
                 nome="Administradora",
                 password_hash=get_password_hash("admin123"),
+                perfil="admin",
             )
             db.add(user)
             db.commit()
-            print("✅ Usuário padrão criado: admin@clinica.com / admin123")
+            print("  ✅ Usuário padrão criado: admin@clinica.com / admin123")
+
+        # Set perfil='admin' for existing users that have NULL perfil
+        db.execute(text("UPDATE users SET perfil='admin' WHERE perfil IS NULL"))
+        db.commit()
     finally:
         db.close()
 

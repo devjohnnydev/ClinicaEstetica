@@ -32,6 +32,13 @@ def now_br():
     return datetime.now(BRAZIL_TZ)
 
 
+def _prof_id_for_user(user: User):
+    """Return profissional_id if user is a professional, else None."""
+    if getattr(user, "perfil", None) == "profissional" and getattr(user, "profissional_id", None):
+        return user.profissional_id
+    return None
+
+
 # ═══════════════════════════════════════════════════════════════════
 # AGENDAMENTOS
 # ═══════════════════════════════════════════════════════════════════
@@ -47,12 +54,18 @@ def listar_agendamentos(
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(Agendamento)
+
+    # RBAC: professionals see only their own appointments
+    forced_prof = _prof_id_for_user(current_user)
+    if forced_prof:
+        q = q.filter(Agendamento.profissional_id == forced_prof)
+    elif profissional_id:
+        q = q.filter(Agendamento.profissional_id == profissional_id)
+
     if data_inicio:
         q = q.filter(Agendamento.data >= data_inicio)
     if data_fim:
         q = q.filter(Agendamento.data <= data_fim)
-    if profissional_id:
-        q = q.filter(Agendamento.profissional_id == profissional_id)
     if status:
         q = q.filter(Agendamento.status == status)
     if cliente_id:
@@ -465,7 +478,8 @@ def criar_profissional(
 ):
     from services.auth import get_password_hash
 
-    prof_data = payload.dict()
+    # Exclude non-model fields from dict
+    prof_data = payload.dict(exclude={"senha"})
     user_id = None
 
     # Auto-create a User login if email is provided
@@ -474,13 +488,16 @@ def criar_profissional(
         if existing:
             user_id = existing.id
         else:
-            # Generate default password: first name lowercase + "123"
-            first_name = payload.nome.strip().split()[0].lower()
-            default_password = f"{first_name}123"
+            # Use provided password or fallback to first_name + 123
+            password = payload.senha
+            if not password:
+                first_name = payload.nome.strip().split()[0].lower()
+                password = f"{first_name}123"
             new_user = User(
                 email=payload.email,
-                password_hash=get_password_hash(default_password),
+                password_hash=get_password_hash(password),
                 nome=payload.nome,
+                perfil="profissional",
             )
             db.add(new_user)
             db.flush()
@@ -488,6 +505,15 @@ def criar_profissional(
 
     prof = Profissional(**prof_data, user_id=user_id)
     db.add(prof)
+    db.flush()
+
+    # Link the user back to the professional
+    if user_id:
+        user_obj = db.query(User).filter(User.id == user_id).first()
+        if user_obj:
+            user_obj.profissional_id = prof.id
+            user_obj.perfil = "profissional"
+
     db.commit()
     db.refresh(prof)
     return prof
@@ -541,8 +567,14 @@ def listar_bloqueios(
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(BloqueioHorario)
-    if profissional_id:
+
+    # RBAC: professionals see only their own blocks
+    forced_prof = _prof_id_for_user(current_user)
+    if forced_prof:
+        q = q.filter(BloqueioHorario.profissional_id == forced_prof)
+    elif profissional_id:
         q = q.filter(BloqueioHorario.profissional_id == profissional_id)
+
     if data_inicio:
         q = q.filter(BloqueioHorario.data >= data_inicio)
     if data_fim:

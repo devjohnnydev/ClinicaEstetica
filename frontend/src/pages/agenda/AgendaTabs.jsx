@@ -199,7 +199,7 @@ function ProfissionaisSubTab() {
   const [servicos, setServicos] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ nome: '', especialidade: '', telefone: '', email: '' });
+  const [form, setForm] = useState({ nome: '', especialidade: '', telefone: '', email: '', senha: '' });
   const [linkId, setLinkId] = useState(null);
   const [linkIds, setLinkIds] = useState([]);
 
@@ -208,8 +208,9 @@ function ProfissionaisSubTab() {
 
   const handleSave = async () => {
     try {
-      if (editId) await atualizarProfissional(editId, form);
-      else await criarProfissional(form);
+      const payload = { ...form };
+      if (editId) { delete payload.senha; await atualizarProfissional(editId, payload); }
+      else await criarProfissional(payload);
       setShowForm(false); setEditId(null); load();
     } catch {}
   };
@@ -221,7 +222,7 @@ function ProfissionaisSubTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', especialidade: '', telefone: '', email: '' }); }}>
+        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', especialidade: '', telefone: '', email: '', senha: '' }); }}>
           <FiPlus className="inline mr-1" size={14} /> Novo Profissional
         </button>
       </div>
@@ -230,10 +231,11 @@ function ProfissionaisSubTab() {
           <div className="grid grid-cols-2 gap-3">
             <div><label className={labelCls}>Nome *</label><input className={inputCls} value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
             <div><label className={labelCls}>Email (gera login)</label><input className={inputCls} type="email" placeholder="profissional@clinica.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+            {!editId && form.email && <div><label className={labelCls}>Senha *</label><input className={inputCls} type="password" placeholder="Senha do profissional" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} /></div>}
             <div><label className={labelCls}>Especialidade</label><input className={inputCls} value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} /></div>
             <div><label className={labelCls}>Telefone</label><input className={inputCls} value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
           </div>
-          {!editId && form.email && <p className="text-xs text-accent bg-accent/10 px-3 py-1.5 rounded-xl">Um login será criado automaticamente. Senha padrão: primeiro nome em minúsculo + 123</p>}
+          {!editId && form.email && <p className="text-xs text-accent bg-accent/10 px-3 py-1.5 rounded-xl">Um login será criado automaticamente para este profissional visualizar sua agenda.</p>}
           <div className="flex gap-3"><button className={btnPrimary} onClick={handleSave}>Salvar</button><button className={btnSecondary} onClick={() => setShowForm(false)}>Cancelar</button></div>
         </div>
       )}

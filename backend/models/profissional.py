@@ -24,7 +24,7 @@ class Profissional(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)
 
-    user = relationship("User", foreign_keys=[user_id])
+    user = relationship("User", foreign_keys=[user_id], lazy="select")
     servicos = relationship(
         "Servico",
         secondary="profissional_servicos",

@@ -70,6 +70,7 @@ class ProfissionalCreate(BaseModel):
     especialidade: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[str] = None
+    senha: Optional[str] = None  # used to create the login
 
 
 class ProfissionalUpdate(BaseModel):

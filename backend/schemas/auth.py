@@ -14,6 +14,8 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    perfil: Optional[str] = "admin"
+    profissional_id: Optional[int] = None
     created_at: Optional[datetime] = None
 
     class Config:
