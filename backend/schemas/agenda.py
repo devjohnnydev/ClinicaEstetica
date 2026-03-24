@@ -10,6 +10,7 @@ class AgendaClienteCreate(BaseModel):
     email: Optional[str] = None
     data_nascimento: Optional[date] = None
     observacoes: Optional[str] = None
+    tags: Optional[str] = None  # comma-separated: VIP,recorrente
     paciente_id: Optional[int] = None
 
 
@@ -19,6 +20,7 @@ class AgendaClienteUpdate(BaseModel):
     email: Optional[str] = None
     data_nascimento: Optional[date] = None
     observacoes: Optional[str] = None
+    tags: Optional[str] = None
 
 
 class AgendaClienteResponse(BaseModel):
@@ -28,6 +30,7 @@ class AgendaClienteResponse(BaseModel):
     email: Optional[str] = None
     data_nascimento: Optional[date] = None
     observacoes: Optional[str] = None
+    tags: Optional[str] = None
     paciente_id: Optional[int] = None
     created_at: Optional[datetime] = None
 

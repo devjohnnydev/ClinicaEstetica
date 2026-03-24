@@ -136,6 +136,8 @@ def run_migrations_and_seed():
             # users table
             ("users", "perfil", "VARCHAR DEFAULT 'admin'"),
             ("users", "profissional_id", "INTEGER"),
+            # agenda_clientes table
+            ("agenda_clientes", "tags", "VARCHAR"),
         ]
         for table, col, col_type in migrations:
             try:

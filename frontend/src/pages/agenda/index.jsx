@@ -1,34 +1,39 @@
 import { useState, useEffect, useMemo } from 'react';
-import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar, FiColumns, FiZoomIn } from 'react-icons/fi';
 import { getAgendamentos, getBloqueios, getAgendaDashboard, autoConcluir, getProfissionais } from '../../services/api';
 import { NovoAgendamentoModal, DetalhesAgendamentoModal, BloqueioModal, ListaEsperaModal } from './AgendaModals';
 import { ClientesTab, ProcedimentosTab } from './AgendaTabs';
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
-const SLOT_H = 64; // px per hour row — key for proportional sizing
-const VIEWS = ['dia', 'semana', 'mes'];
-const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 07:00 – 20:00
+const VIEWS = ['dia', 'semana', 'mes', 'profissional'];
+const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const ZOOM_OPTIONS = [
+  { label: '15min', value: 15, slotH: 20 },
+  { label: '30min', value: 30, slotH: 36 },
+  { label: '60min', value: 60, slotH: 72 },
+];
 
 function fmtDate(d) { return d.toISOString().split('T')[0]; }
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 function startOfWeek(d) { const r = new Date(d); r.setDate(r.getDate() - r.getDay()); return r; }
-function timeToMin(t) { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function timeToMin(t) { if (!t) return 0; const p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
 
-/* ── Status styling map ───────────────────────────────────────── */
-const STATUS = {
-  agendado:       { label: 'Agendado',       bg: 'bg-blue-500',      bgLight: 'bg-blue-50',  text: 'text-blue-700',    border: 'border-blue-300',    dot: 'bg-blue-500' },
-  confirmado:     { label: 'Confirmado',     bg: 'bg-emerald-500',   bgLight: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500' },
-  cancelado:      { label: 'Cancelado',      bg: 'bg-red-400',       bgLight: 'bg-red-50',   text: 'text-red-600',     border: 'border-red-300',     dot: 'bg-red-400' },
-  nao_compareceu: { label: 'Não Compareceu', bg: 'bg-orange-400',    bgLight: 'bg-orange-50', text: 'text-orange-700',  border: 'border-orange-300',  dot: 'bg-orange-400' },
-  concluido:      { label: 'Concluído',      bg: 'bg-teal-500',      bgLight: 'bg-teal-50',  text: 'text-teal-700',    border: 'border-teal-300',    dot: 'bg-teal-500' },
+/* ── Status ────────────────────────────────────────────────────── */
+const STATUS_MAP = {
+  agendado:       { label: 'Agendado',       bg: '#3B82F6', bgLight: '#EFF6FF', text: '#1D4ED8', border: '#93C5FD' },
+  confirmado:     { label: 'Confirmado',     bg: '#10B981', bgLight: '#ECFDF5', text: '#047857', border: '#6EE7B7' },
+  em_atendimento: { label: 'Em Atendimento', bg: '#7C3AED', bgLight: '#EDE9FE', text: '#6D28D9', border: '#C4B5FD' },
+  concluido:      { label: 'Concluído',      bg: '#14B8A6', bgLight: '#F0FDFA', text: '#0F766E', border: '#5EEAD4' },
+  nao_compareceu: { label: 'Não Compareceu', bg: '#F97316', bgLight: '#FFF7ED', text: '#C2410C', border: '#FDBA74' },
+  cancelado:      { label: 'Cancelado',      bg: '#EF4444', bgLight: '#FEF2F2', text: '#B91C1C', border: '#FCA5A5' },
 };
-const getStatus = (s) => STATUS[s] || STATUS.agendado;
-const getCatColor = (cat) => cat === 'unha' ? { left: 'border-l-nail-dark', icon: 'bg-nail/20 text-nail-dark' } : { left: 'border-l-accent', icon: 'bg-accent/15 text-accent-dark' };
+const getStatus = (s) => STATUS_MAP[s] || STATUS_MAP.agendado;
 
 export default function Agenda() {
   const [tab, setTab] = useState('agenda');
   const [view, setView] = useState('dia');
+  const [zoom, setZoom] = useState(60);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState([]);
   const [bloqueios, setBloqueios] = useState([]);
@@ -41,6 +46,8 @@ export default function Agenda() {
   const [showDetails, setShowDetails] = useState(null);
   const [showBloqueio, setShowBloqueio] = useState(false);
   const [showEspera, setShowEspera] = useState(false);
+
+  const slotH = ZOOM_OPTIONS.find(z => z.value === zoom)?.slotH || 72;
 
   const loadAll = async () => {
     try { autoConcluir().catch(() => {}); } catch {}
@@ -63,16 +70,32 @@ export default function Agenda() {
   useEffect(() => { loadAll(); }, [currentDate, view, filterProf]);
 
   const getDateRange = () => {
-    if (view === 'dia') return { start: fmtDate(currentDate), end: fmtDate(currentDate) };
+    if (view === 'dia' || view === 'profissional') return { start: fmtDate(currentDate), end: fmtDate(currentDate) };
     if (view === 'semana') { const s = startOfWeek(currentDate); return { start: fmtDate(s), end: fmtDate(addDays(s, 6)) }; }
     const y = currentDate.getFullYear(), m = currentDate.getMonth();
     return { start: fmtDate(new Date(y, m, 1)), end: fmtDate(new Date(y, m + 1, 0)) };
   };
-  const navigate = (dir) => { const d = new Date(currentDate); if (view === 'dia') d.setDate(d.getDate() + dir); else if (view === 'semana') d.setDate(d.getDate() + dir * 7); else d.setMonth(d.getMonth() + dir); setCurrentDate(d); };
-  const openNew = (date, time) => { setNewInitDate(date || fmtDate(currentDate)); setNewInitTime(time || ''); setShowNew(true); };
+
+  const navigate = (dir) => {
+    const d = new Date(currentDate);
+    if (view === 'dia' || view === 'profissional') d.setDate(d.getDate() + dir);
+    else if (view === 'semana') d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
+    setCurrentDate(d);
+  };
+
+  const openNew = (date, time) => {
+    setNewInitDate(date || fmtDate(currentDate));
+    setNewInitTime(time || '');
+    setShowNew(true);
+  };
+
   const dateLabel = () => {
-    if (view === 'dia') return currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    if (view === 'semana') { const s = startOfWeek(currentDate); return `${s.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })} — ${addDays(s, 6).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}`; }
+    if (view === 'dia' || view === 'profissional') return currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (view === 'semana') {
+      const s = startOfWeek(currentDate);
+      return `${s.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })} — ${addDays(s, 6).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
     return `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   };
 
@@ -82,8 +105,10 @@ export default function Agenda() {
     { key: 'procedimentos', label: 'Procedimentos', icon: FiScissors },
   ];
 
+  const viewLabels = { dia: 'Dia', semana: 'Semana', mes: 'Mês', profissional: 'Profissionais' };
+
   return (
-    <div className="space-y-5 animate-fadeIn">
+    <div className="space-y-4 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -92,20 +117,18 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* Dashboard Cards — compact for mobile */}
+      {/* Dashboard Cards */}
       {dashboard && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Hoje', value: dashboard.total_hoje, color: 'from-accent to-accent-dark', Icon: FiCalendar },
-            { label: 'Confirmados', value: dashboard.confirmados, color: 'from-emerald-400 to-teal-500', Icon: FiCheckIcon },
-            { label: 'Concluídos', value: dashboard.concluidos, color: 'from-teal-400 to-cyan-500', Icon: FiCheckIcon },
-            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500', Icon: FiClock },
+            { label: 'Hoje', value: dashboard.total_hoje, color: 'from-accent to-accent-dark' },
+            { label: 'Confirmados', value: dashboard.confirmados, color: 'from-emerald-400 to-teal-500' },
+            { label: 'Concluídos', value: dashboard.concluidos, color: 'from-teal-400 to-cyan-500' },
+            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500' },
           ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl shadow-card p-4 border border-secondary/20 hover:shadow-hover transition-shadow">
-              <div className="flex items-center justify-between">
-                <div><p className="text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p><p className="text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p></div>
-                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-white`}><c.Icon size={16} /></div>
-              </div>
+              <p className="text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p>
+              <p className="text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p>
             </div>
           ))}
         </div>
@@ -114,58 +137,109 @@ export default function Agenda() {
       {/* Birthday alert */}
       {dashboard?.aniversariantes?.length > 0 && (
         <div className="p-3.5 bg-gradient-to-r from-pink-50 to-amber-50 rounded-2xl border border-pink-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-pink-100 flex items-center justify-center shrink-0"><span className="text-base">🎂</span></div>
+          <div className="w-8 h-8 rounded-xl bg-pink-100 flex items-center justify-center shrink-0">
+            <FiCalendar size={16} className="text-pink-500" />
+          </div>
           <div className="min-w-0">
-            <p className="font-heading font-semibold text-sm text-dark">Aniversariantes do mês</p>
-            <p className="text-xs text-dark/50 truncate">{dashboard.aniversariantes.map(a => `${a.nome} (dia ${a.dia})`).join(' · ')}</p>
+            <p className="font-heading font-semibold text-sm text-dark">Aniversariantes</p>
+            <p className="text-xs text-dark/50 truncate">
+              {dashboard.aniversariantes.map(a => `${a.nome} (dia ${a.dia})`).join(' · ')}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Tabs — mobile-friendly */}
+      {/* Tabs */}
       <div className="flex gap-1 bg-soft p-1 rounded-2xl">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
               tab === t.key ? 'bg-white text-accent shadow-card' : 'text-dark/40 hover:text-dark'
-            }`}
-          ><t.icon size={15} /> <span className="hidden sm:inline">{t.label}</span></button>
+            }`}>
+            <t.icon size={15} />
+            <span className="hidden sm:inline">{t.label}</span>
+          </button>
         ))}
       </div>
 
       {tab === 'agenda' && (
         <div className="space-y-3">
-          {/* Toolbar — stacks on mobile */}
+          {/* Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* View switcher */}
               <div className="flex bg-white rounded-xl shadow-card border border-secondary/30 overflow-hidden">
                 {VIEWS.map(v => (
                   <button key={v} onClick={() => setView(v)}
-                    className={`px-3.5 py-2 text-xs font-semibold capitalize transition-all ${view === v ? 'bg-gradient-to-r from-accent to-accent-dark text-white' : 'text-dark/40 hover:text-dark hover:bg-primary/50'}`}
-                  >{v}</button>
+                    className={`px-3 py-2 text-[11px] font-semibold transition-all ${
+                      view === v ? 'bg-gradient-to-r from-accent to-accent-dark text-white' : 'text-dark/40 hover:text-dark hover:bg-primary/50'
+                    }`}>{viewLabels[v]}</button>
                 ))}
               </div>
-              <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary"><FiChevronLeft size={15} /></button>
+              {/* Nav */}
+              <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary">
+                <FiChevronLeft size={15} />
+              </button>
               <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 rounded-xl bg-white shadow-card border border-secondary/30 text-xs font-semibold hover:bg-primary">Hoje</button>
-              <button onClick={() => navigate(1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary"><FiChevronRight size={15} /></button>
+              <button onClick={() => navigate(1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary">
+                <FiChevronRight size={15} />
+              </button>
+              {/* Zoom */}
+              {(view === 'dia' || view === 'semana' || view === 'profissional') && (
+                <div className="flex bg-white rounded-xl shadow-card border border-secondary/30 overflow-hidden">
+                  {ZOOM_OPTIONS.map(z => (
+                    <button key={z.value} onClick={() => setZoom(z.value)}
+                      className={`px-2.5 py-2 text-[10px] font-semibold transition-all ${
+                        zoom === z.value ? 'bg-accent/10 text-accent' : 'text-dark/30 hover:text-dark'
+                      }`}>{z.label}</button>
+                  ))}
+                </div>
+              )}
             </div>
+
             <span className="font-heading font-semibold text-dark text-sm capitalize">{dateLabel()}</span>
+
             <div className="sm:ml-auto flex flex-wrap gap-2">
-              <select className="px-3 py-2 rounded-xl border border-secondary/30 bg-white text-xs" value={filterProf} onChange={e => setFilterProf(e.target.value)}>
-                <option value="">Todos profissionais</option>
-                {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
-              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowBloqueio(true)}><FiLock size={13} /> Bloquear</button>
-              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowEspera(true)}><FiClock size={13} /> Espera</button>
-              <button className="px-3 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-xl text-xs font-semibold shadow-card hover:shadow-hover flex items-center gap-1" onClick={() => openNew()}><FiPlus size={14} /> Agendar</button>
+              {view !== 'profissional' && (
+                <select className="px-3 py-2 rounded-xl border border-secondary/30 bg-white text-xs" value={filterProf} onChange={e => setFilterProf(e.target.value)}>
+                  <option value="">Todos profissionais</option>
+                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+              )}
+              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowBloqueio(true)}>
+                <FiLock size={13} /> Bloquear
+              </button>
+              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowEspera(true)}>
+                <FiClock size={13} /> Espera
+              </button>
+              <button className="px-3 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-xl text-xs font-semibold shadow-card hover:shadow-hover flex items-center gap-1" onClick={() => openNew()}>
+                <FiPlus size={14} /> Agendar
+              </button>
             </div>
           </div>
 
-          {view === 'dia' && <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails} />}
-          {view === 'semana' && <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} onClickSlot={(d, t) => openNew(d, t)} onClickEvent={setShowDetails} />}
-          {view === 'mes' && <MonthView date={currentDate} agendamentos={agendamentos} onClickDay={(d) => { setCurrentDate(new Date(d + 'T12:00:00')); setView('dia'); }} onClickEvent={setShowDetails} dashboard={dashboard} />}
+          {/* Calendar views */}
+          {view === 'dia' && (
+            <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
+              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails} />
+          )}
+          {view === 'semana' && (
+            <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
+              onClickSlot={(d, t) => openNew(d, t)} onClickEvent={setShowDetails} />
+          )}
+          {view === 'mes' && (
+            <MonthView date={currentDate} agendamentos={agendamentos}
+              onClickDay={(d) => { setCurrentDate(new Date(d + 'T12:00:00')); setView('dia'); }}
+              onClickEvent={setShowDetails} dashboard={dashboard} />
+          )}
+          {view === 'profissional' && (
+            <ProfessionalView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios}
+              profissionais={profissionais} slotH={slotH} zoom={zoom}
+              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails} />
+          )}
         </div>
       )}
+
       {tab === 'clientes' && <ClientesTab />}
       {tab === 'procedimentos' && <ProcedimentosTab />}
 
@@ -177,91 +251,111 @@ export default function Agenda() {
   );
 }
 
-/* Simple check icon fallback */
-function FiCheckIcon({ size }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>; }
-
-/* ═══════════ APPOINTMENT CARD — proportional ═══════════ */
+/* ═══════════════════════════════════════════════════════════
+   EVENT CARD  — fills 100% parent height
+   ═══════════════════════════════════════════════════════════ */
 function EventCard({ ag, onClick, compact }) {
   const st = getStatus(ag.status);
-  const cat = getCatColor(ag.servico?.categoria);
-  const dur = ag.servico?.duracao_minutos || 30;
 
   if (compact) {
     return (
       <button onClick={e => { e.stopPropagation(); onClick(ag); }}
-        className={`w-full text-left px-2 py-1 rounded-lg text-[11px] leading-tight truncate border-l-[3px] ${cat.left} ${st.bgLight} ${st.text} hover:brightness-95 transition-all`}
-      >
-        <span className="font-bold">{ag.hora_inicio?.slice(0,5)}</span> {ag.cliente?.nome?.split(' ')[0]}
+        className="w-full text-left px-2 py-1 rounded-lg text-[11px] leading-tight truncate transition-all hover:brightness-95"
+        style={{ background: st.bgLight, color: st.text, borderLeft: `3px solid ${st.bg}` }}>
+        <span className="font-bold">{ag.hora_inicio?.slice(0,5)}</span>{' '}
+        {ag.cliente?.nome?.split(' ')[0]}
       </button>
     );
   }
 
   return (
     <button onClick={e => { e.stopPropagation(); onClick(ag); }}
-      className={`w-full text-left p-2.5 rounded-xl border-l-4 ${cat.left} ${st.bgLight} border ${st.border} hover:shadow-md transition-all group overflow-hidden`}
-      style={{ minHeight: 40 }}
-    >
-      <div className="flex items-start gap-2">
-        <span className={`w-2 h-2 rounded-full ${st.dot} mt-1 shrink-0`} />
-        <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-xs ${st.text} truncate`}>{ag.cliente?.nome || '—'}</p>
+      className="w-full h-full text-left rounded-xl overflow-hidden transition-all hover:shadow-lg hover:brightness-[0.97] flex flex-col"
+      style={{
+        background: st.bgLight,
+        border: `1px solid ${st.border}`,
+        borderLeftWidth: '4px',
+        borderLeftColor: st.bg,
+      }}>
+      <div className="flex items-start gap-1.5 p-2 flex-1 min-h-0">
+        <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ background: st.bg }} />
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="font-semibold text-xs truncate" style={{ color: st.text }}>{ag.cliente?.nome || '—'}</p>
           <p className="text-[11px] text-dark/50 truncate">{ag.servico?.nome} · {ag.profissional?.nome}</p>
-          <p className="text-[11px] text-dark/40">{ag.hora_inicio?.slice(0,5)} – {ag.hora_fim?.slice(0,5)}</p>
+          <p className="text-[10px] text-dark/40">{ag.hora_inicio?.slice(0,5)} – {ag.hora_fim?.slice(0,5)}</p>
         </div>
-        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${st.bg} text-white shrink-0`}>{st.label}</span>
+        <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white shrink-0 leading-tight" style={{ background: st.bg }}>
+          {st.label}
+        </span>
       </div>
     </button>
   );
 }
 
-/* ═══════════ DAY VIEW — proportional height ═══════════ */
-function DayView({ date, agendamentos, bloqueios, onClickSlot, onClickEvent }) {
+/* ═══════════════════════════════════════════════════════════
+   TIME GRID HELPERS — used by Day/Week/Professional views
+   ═══════════════════════════════════════════════════════════ */
+function buildSlots(zoom) {
+  const slots = [];
+  for (let h = 7; h <= 20; h++) {
+    for (let m = 0; m < 60; m += zoom) {
+      slots.push({ h, m, label: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` });
+    }
+  }
+  return slots;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DAY VIEW  — proportional, zoomable
+   ═══════════════════════════════════════════════════════════ */
+function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent }) {
   const dateStr = fmtDate(date);
   const dayAgs = agendamentos.filter(a => a.data === dateStr && a.status !== 'cancelado');
   const dayBloqs = bloqueios.filter(b => b.data === dateStr);
-  const gridStart = HOURS[0] * 60; // 07:00 in minutes
+  const slots = buildSlots(zoom);
+  const gridStart = 7 * 60;
+  const pxPerMin = slotH / zoom;
+  const gridHeight = slots.length * slotH;
 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-hidden">
-      <div className="overflow-y-auto max-h-[calc(100vh-320px)] agenda-grid relative" style={{ minHeight: HOURS.length * SLOT_H }}>
-        {/* Hour grid lines */}
-        {HOURS.map((h, i) => (
-          <div key={h} className="flex border-b border-primary/40 cursor-pointer hover:bg-primary/10 transition-colors"
-            style={{ height: SLOT_H }}
-            onClick={() => onClickSlot(`${String(h).padStart(2, '0')}:00`)}
-          >
-            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1 text-[11px] text-dark/35 font-medium border-r border-primary/40 select-none">
-              {String(h).padStart(2, '0')}:00
+      <div className="overflow-y-auto max-h-[calc(100vh-320px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+        {slots.map((s, i) => (
+          <div key={i}
+            className="flex border-b border-primary/30 cursor-pointer hover:bg-primary/10 transition-colors"
+            style={{ height: slotH }}
+            onClick={() => onClickSlot(s.label)}>
+            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1 text-[10px] text-dark/30 font-medium border-r border-primary/40 select-none">
+              {s.m === 0 ? s.label : ''}
             </div>
             <div className="flex-1" />
           </div>
         ))}
 
-        {/* Bloqueios — positioned absolutely */}
+        {/* Bloqueios */}
         {dayBloqs.map(b => {
-          const top = (timeToMin(b.hora_inicio) - gridStart) / 60 * SLOT_H;
-          const height = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) / 60 * SLOT_H, SLOT_H / 2);
-          const tipos = { ausencia: 'Ausência', atestado: 'Atestado', intervalo: 'Intervalo' };
+          const top = (timeToMin(b.hora_inicio) - gridStart) * pxPerMin;
+          const h = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) * pxPerMin, 20);
           return (
-            <div key={`b-${b.id}`} className="absolute left-14 sm:left-16 right-2 bg-gray-100/80 border border-gray-200 border-dashed rounded-xl flex items-start p-2.5 pointer-events-none z-[1]"
-              style={{ top, height }}
-            >
+            <div key={`b-${b.id}`}
+              className="absolute right-2 bg-gray-100/90 border border-dashed border-gray-300 rounded-xl flex items-start p-2 pointer-events-none z-[1]"
+              style={{ top, height: h, left: '3.5rem' }}>
               <FiLock size={12} className="text-gray-400 mr-1.5 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-gray-500">{tipos[b.tipo] || b.tipo}</p>
-                <p className="text-[11px] text-gray-400">{b.profissional?.nome} · {b.hora_inicio?.slice(0,5)}–{b.hora_fim?.slice(0,5)}</p>
+                <p className="text-xs font-semibold text-gray-500">{b.tipo}</p>
+                <p className="text-[10px] text-gray-400">{b.profissional?.nome} · {b.hora_inicio?.slice(0,5)}–{b.hora_fim?.slice(0,5)}</p>
               </div>
             </div>
           );
         })}
 
-        {/* Appointments — proportional */}
+        {/* Events */}
         {dayAgs.map(ag => {
-          const top = (timeToMin(ag.hora_inicio) - gridStart) / 60 * SLOT_H;
-          const dur = timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio);
-          const height = Math.max(dur / 60 * SLOT_H, 40);
+          const top = (timeToMin(ag.hora_inicio) - gridStart) * pxPerMin;
+          const h = Math.max((timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio)) * pxPerMin, 36);
           return (
-            <div key={ag.id} className="absolute left-14 sm:left-16 right-2 z-[2]" style={{ top: top + 2, height: height - 4 }}>
+            <div key={ag.id} className="absolute z-[2]"
+              style={{ top: top + 1, height: h - 2, left: 'calc(3.5rem + 4px)', right: '8px' }}>
               <EventCard ag={ag} onClick={onClickEvent} />
             </div>
           );
@@ -271,59 +365,51 @@ function DayView({ date, agendamentos, bloqueios, onClickSlot, onClickEvent }) {
   );
 }
 
-/* ═══════════ WEEK VIEW — proportional ═══════════ */
-function WeekView({ date, agendamentos, bloqueios, onClickSlot, onClickEvent }) {
+/* ═══════════════════════════════════════════════════════════
+   WEEK VIEW
+   ═══════════════════════════════════════════════════════════ */
+function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent }) {
   const weekStart = startOfWeek(date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const gridStart = HOURS[0] * 60;
+  const slots = buildSlots(zoom);
+  const gridStart = 7 * 60;
+  const pxPerMin = slotH / zoom;
+  const gridHeight = slots.length * slotH;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto week-scroll">
-      <div className="min-w-[700px]">
-        {/* Header */}
+    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
+      <div style={{ minWidth: 700 }}>
         <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/30 sticky top-0 bg-white z-10">
           <div className="border-r border-primary/40" />
           {days.map((d, i) => {
             const isToday = fmtDate(d) === fmtDate(new Date());
             return (
               <div key={i} className={`text-center py-2.5 border-r border-primary/40 ${isToday ? 'bg-accent/5' : ''}`}>
-                <p className="text-[10px] text-dark/35 uppercase font-semibold tracking-wide">{DAYS[d.getDay()]}</p>
+                <p className="text-[10px] text-dark/35 uppercase font-semibold">{DAYS_SHORT[d.getDay()]}</p>
                 <p className={`text-sm font-heading font-bold mt-0.5 ${isToday ? 'bg-accent text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto' : 'text-dark'}`}>{d.getDate()}</p>
               </div>
             );
           })}
         </div>
-        {/* Grid body */}
-        <div className="overflow-y-auto max-h-[calc(100vh-360px)] agenda-grid relative">
-          {/* Hour rows */}
-          {HOURS.map(h => (
-            <div key={h} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/30" style={{ height: SLOT_H }}>
-              <div className="px-2 pt-1 text-[10px] text-dark/30 font-medium border-r border-primary/40">{String(h).padStart(2, '0')}:00</div>
+        <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+          {slots.map((s, i) => (
+            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/20" style={{ height: slotH }}>
+              <div className="px-2 pt-1 text-[10px] text-dark/25 font-medium border-r border-primary/40">{s.m === 0 ? s.label : ''}</div>
               {days.map((d, di) => (
-                <div key={di} className="border-r border-primary/25 hover:bg-primary/10 cursor-pointer transition-colors relative"
-                  onClick={() => onClickSlot(fmtDate(d), `${String(h).padStart(2, '0')}:00`)} />
+                <div key={di} className="border-r border-primary/15 hover:bg-primary/10 cursor-pointer transition-colors"
+                  onClick={() => onClickSlot(fmtDate(d), s.label)} />
               ))}
             </div>
           ))}
-          {/* Overlay events — each day column */}
           {days.map((d, di) => {
             const ds = fmtDate(d);
-            const colAgs = agendamentos.filter(a => a.data === ds && a.status !== 'cancelado');
-            // colLeft: 56px (time col) + di * colWidth
-            return colAgs.map(ag => {
-              const top = (timeToMin(ag.hora_inicio) - gridStart) / 60 * SLOT_H;
-              const dur = timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio);
-              const height = Math.max(dur / 60 * SLOT_H, 28);
+            return agendamentos.filter(a => a.data === ds && a.status !== 'cancelado').map(ag => {
+              const top = (timeToMin(ag.hora_inicio) - gridStart) * pxPerMin;
+              const h = Math.max((timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio)) * pxPerMin, 24);
               return (
                 <div key={ag.id} className="absolute z-[2] px-0.5"
-                  style={{
-                    top: top + 1,
-                    height: height - 2,
-                    left: `calc(56px + ${di} * ((100% - 56px) / 7) + 2px)`,
-                    width: `calc((100% - 56px) / 7 - 4px)`,
-                  }}
-                >
-                  <EventCard ag={ag} onClick={onClickEvent} compact={dur < 40} />
+                  style={{ top: top + 1, height: h - 2, left: `calc(56px + ${di} * ((100% - 56px) / 7) + 2px)`, width: `calc((100% - 56px) / 7 - 4px)` }}>
+                  <EventCard ag={ag} onClick={onClickEvent} compact={h < 40} />
                 </div>
               );
             });
@@ -334,7 +420,102 @@ function WeekView({ date, agendamentos, bloqueios, onClickSlot, onClickEvent }) 
   );
 }
 
-/* ═══════════ MONTH VIEW ═══════════ */
+/* ═══════════════════════════════════════════════════════════
+   PROFESSIONAL VIEW — one column per professional
+   ═══════════════════════════════════════════════════════════ */
+function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH, zoom, onClickSlot, onClickEvent }) {
+  const dateStr = fmtDate(date);
+  const profs = profissionais.filter(p => p.ativo !== false);
+  const slots = buildSlots(zoom);
+  const gridStart = 7 * 60;
+  const pxPerMin = slotH / zoom;
+  const gridHeight = slots.length * slotH;
+  const colCount = profs.length || 1;
+
+  if (profs.length === 0) return <div className="text-center py-12 text-dark/40">Nenhum profissional cadastrado</div>;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
+      <div style={{ minWidth: Math.max(600, colCount * 200) }}>
+        {/* Header */}
+        <div className={`grid border-b border-secondary/30 sticky top-0 bg-white z-10`}
+          style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
+          <div className="border-r border-primary/40 flex items-center justify-center py-2">
+            <FiColumns size={14} className="text-dark/30" />
+          </div>
+          {profs.map(p => (
+            <div key={p.id} className="text-center py-3 border-r border-primary/40 px-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-xs flex items-center justify-center mx-auto mb-1">
+                {p.nome?.charAt(0)}
+              </div>
+              <p className="text-xs font-semibold text-dark truncate">{p.nome}</p>
+              {p.especialidade && <p className="text-[10px] text-dark/40 truncate">{p.especialidade}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Grid body */}
+        <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+          {slots.map((s, i) => (
+            <div key={i} className="border-b border-primary/20"
+              style={{ height: slotH, display: 'grid', gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
+              <div className="px-2 pt-1 text-[10px] text-dark/25 font-medium border-r border-primary/40 select-none">{s.m === 0 ? s.label : ''}</div>
+              {profs.map((p, pi) => (
+                <div key={pi} className="border-r border-primary/15 hover:bg-primary/10 cursor-pointer transition-colors"
+                  onClick={() => onClickSlot(s.label)} />
+              ))}
+            </div>
+          ))}
+
+          {/* Events per professional column */}
+          {profs.map((p, pi) => {
+            const profAgs = agendamentos.filter(a => a.data === dateStr && a.profissional_id === p.id && a.status !== 'cancelado');
+            const profBloqs = bloqueios.filter(b => b.data === dateStr && b.profissional_id === p.id);
+
+            return (
+              <div key={p.id}>
+                {profBloqs.map(b => {
+                  const top = (timeToMin(b.hora_inicio) - gridStart) * pxPerMin;
+                  const h = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) * pxPerMin, 16);
+                  return (
+                    <div key={`b-${b.id}`}
+                      className="absolute bg-gray-100/80 border border-dashed border-gray-300 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                      style={{
+                        top, height: h,
+                        left: `calc(56px + ${pi} * ((100% - 56px) / ${colCount}) + 2px)`,
+                        width: `calc((100% - 56px) / ${colCount} - 4px)`,
+                      }}>
+                      <FiLock size={10} className="text-gray-400" />
+                    </div>
+                  );
+                })}
+                {profAgs.map(ag => {
+                  const top = (timeToMin(ag.hora_inicio) - gridStart) * pxPerMin;
+                  const h = Math.max((timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio)) * pxPerMin, 28);
+                  return (
+                    <div key={ag.id}
+                      className="absolute z-[2] px-0.5"
+                      style={{
+                        top: top + 1, height: h - 2,
+                        left: `calc(56px + ${pi} * ((100% - 56px) / ${colCount}) + 2px)`,
+                        width: `calc((100% - 56px) / ${colCount} - 4px)`,
+                      }}>
+                      <EventCard ag={ag} onClick={onClickEvent} compact={h < 40} />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MONTH VIEW
+   ═══════════════════════════════════════════════════════════ */
 function MonthView({ date, agendamentos, onClickDay, onClickEvent, dashboard }) {
   const y = date.getFullYear(), m = date.getMonth();
   const firstDay = new Date(y, m, 1).getDay();
@@ -347,7 +528,9 @@ function MonthView({ date, agendamentos, onClickDay, onClickEvent, dashboard }) 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-hidden">
       <div className="grid grid-cols-7">
-        {DAYS.map(d => <div key={d} className="text-center py-2 text-[10px] font-semibold text-dark/35 uppercase tracking-wider border-b border-primary/40">{d}</div>)}
+        {DAYS_SHORT.map(d => (
+          <div key={d} className="text-center py-2 text-[10px] font-semibold text-dark/35 uppercase tracking-wider border-b border-primary/40">{d}</div>
+        ))}
         {cells.map((day, i) => {
           if (!day) return <div key={i} className="border-r border-b border-primary/25 min-h-[90px] bg-primary/10" />;
           const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -355,16 +538,16 @@ function MonthView({ date, agendamentos, onClickDay, onClickEvent, dashboard }) 
           const isToday = ds === fmtDate(new Date());
           const isBday = birthdayDays.has(day);
           return (
-            <div key={i} className={`border-r border-b border-primary/25 min-h-[90px] p-1.5 cursor-pointer hover:bg-primary/20 transition-colors ${isToday ? 'bg-accent/5' : ''}`} onClick={() => onClickDay(ds)}>
+            <div key={i}
+              className={`border-r border-b border-primary/25 min-h-[90px] p-1.5 cursor-pointer hover:bg-primary/20 transition-colors ${isToday ? 'bg-accent/5' : ''}`}
+              onClick={() => onClickDay(ds)}>
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-xs font-semibold ${isToday ? 'bg-accent text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-dark/50'}`}>{day}</span>
-                {isBday && <span className="text-xs">🎂</span>}
+                {isBday && <FiCalendar size={12} className="text-pink-400" />}
                 {dayAgs.length > 0 && <span className="text-[9px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">{dayAgs.length}</span>}
               </div>
               <div className="space-y-0.5">
-                {dayAgs.slice(0, 3).map(a => (
-                  <EventCard key={a.id} ag={a} onClick={onClickEvent} compact />
-                ))}
+                {dayAgs.slice(0, 3).map(a => <EventCard key={a.id} ag={a} onClick={onClickEvent} compact />)}
                 {dayAgs.length > 3 && <p className="text-[9px] text-dark/40 pl-1">+{dayAgs.length - 3} mais</p>}
               </div>
             </div>

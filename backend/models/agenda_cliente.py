@@ -12,6 +12,7 @@ class AgendaCliente(Base):
     email = Column(String, nullable=True)
     data_nascimento = Column(Date, nullable=True)
     observacoes = Column(Text, nullable=True)
+    tags = Column(String, nullable=True)  # comma-separated: VIP,recorrente,etc.
     # Vínculo opcional com paciente da anamnese
     paciente_id = Column(Integer, ForeignKey("pacientes.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)

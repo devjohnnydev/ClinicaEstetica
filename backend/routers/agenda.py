@@ -214,13 +214,8 @@ def cancelar_agendamento(
     ag = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
     if not ag:
         raise HTTPException(404, "Agendamento não encontrado")
-
-    agora = now_br()
-    ag_inicio = BRAZIL_TZ.localize(datetime.combine(ag.data, ag.hora_inicio))
-
-    if agora >= ag_inicio:
-        raise HTTPException(400, "Não é possível cancelar após o horário de início. Use 'Não compareceu'.")
-
+    if ag.status == "cancelado":
+        raise HTTPException(400, "Agendamento já está cancelado")
     ag.status = "cancelado"
     db.commit()
     db.refresh(ag)
@@ -259,6 +254,21 @@ def concluir_agendamento(
     return ag
 
 
+@router.post("/agendamentos/{agendamento_id}/em-atendimento", response_model=AgendamentoResponse)
+def em_atendimento(
+    agendamento_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    ag = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if not ag:
+        raise HTTPException(404, "Agendamento não encontrado")
+    ag.status = "em_atendimento"
+    db.commit()
+    db.refresh(ag)
+    return ag
+
+
 @router.post("/agendamentos/auto-concluir")
 def auto_concluir(
     db: Session = Depends(get_db),
@@ -271,13 +281,13 @@ def auto_concluir(
 
     # Appointments from past days
     passados = db.query(Agendamento).filter(
-        Agendamento.status.in_(["agendado", "confirmado"]),
+        Agendamento.status.in_(["agendado", "confirmado", "em_atendimento"]),
         Agendamento.data < hoje,
     ).all()
 
     # Appointments from today that already ended
     hoje_passados = db.query(Agendamento).filter(
-        Agendamento.status.in_(["agendado", "confirmado"]),
+        Agendamento.status.in_(["agendado", "confirmado", "em_atendimento"]),
         Agendamento.data == hoje,
         Agendamento.hora_fim <= hora_atual,
     ).all()

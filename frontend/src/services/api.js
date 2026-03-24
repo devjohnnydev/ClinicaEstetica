@@ -76,6 +76,7 @@ export const cancelarAgendamento = (id) => api.post(`/api/agenda/agendamentos/${
 export const naoCompareceu = (id) => api.post(`/api/agenda/agendamentos/${id}/nao-compareceu`);
 export const concluirAgendamento = (id) => api.post(`/api/agenda/agendamentos/${id}/concluir`);
 export const confirmarAgendamento = (id) => api.post(`/api/agenda/agendamentos/${id}/confirmar`);
+export const emAtendimento = (id) => api.post(`/api/agenda/agendamentos/${id}/em-atendimento`);
 export const autoConcluir = () => api.post('/api/agenda/agendamentos/auto-concluir');
 
 // Clientes da Agenda

@@ -22,7 +22,7 @@ export function ClientesTab() {
   const [busca, setBusca] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '' });
+  const [form, setForm] = useState({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '', tags: '' });
   const [selectedHist, setSelectedHist] = useState(null);
   const [historico, setHistorico] = useState([]);
 
@@ -38,7 +38,7 @@ export function ClientesTab() {
       if (editId) await atualizarAgendaCliente(editId, payload);
       else await criarAgendaCliente(payload);
       setShowForm(false); setEditId(null);
-      setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '' });
+      setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '', tags: '' });
       load();
     } catch {}
   };
@@ -62,7 +62,7 @@ export function ClientesTab() {
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-dark/30" size={16} />
           <input className={`${inputCls} pl-10`} placeholder="Buscar clientes..." value={busca} onChange={e => setBusca(e.target.value)} />
         </div>
-        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '' }); }}>
+        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '', tags: '' }); }}>
           <FiPlus className="inline mr-1" size={14} /> Novo Cliente
         </button>
       </div>
@@ -76,7 +76,10 @@ export function ClientesTab() {
             <div><label className={labelCls}>Email</label><input className={inputCls} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div><label className={labelCls}>Data Nasc.</label><input type="date" className={inputCls} value={form.data_nascimento} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} /></div>
           </div>
-          <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
+            <div><label className={labelCls}>Tags (VIP, Recorrente, etc)</label><input className={inputCls} value={form.tags || ''} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Ex: VIP, Chata..." /></div>
+          </div>
           <div className="flex gap-3"><button className={btnPrimary} onClick={handleSave}>Salvar</button><button className={btnSecondary} onClick={() => setShowForm(false)}>Cancelar</button></div>
         </div>
       )}
@@ -88,15 +91,16 @@ export function ClientesTab() {
               {c.nome?.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-heading font-semibold text-sm text-dark truncate">
-                {isBirthday(c) && '🎂 '}{c.nome}
+              <p className="font-heading font-semibold text-sm text-dark truncate flex items-center gap-2">
+                <span>{isBirthday(c) && '🎂 '}{c.nome}</span>
+                {c.tags && c.tags.split(',').map((t, i) => t.trim() ? <span key={i} className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] uppercase font-bold">{t.trim()}</span> : null)}
               </p>
-              <p className="text-xs text-dark/40">{c.telefone} {c.email ? `• ${c.email}` : ''}</p>
+              <p className="text-xs text-dark/40 mt-1">{c.telefone} {c.email ? `• ${c.email}` : ''}</p>
             </div>
             <button className="text-accent hover:text-accent-dark text-xs" onClick={() => viewHistory(c.id)}>
               <FiCalendar className="inline mr-1" size={12} /> Histórico
             </button>
-            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(c.id); setForm({ nome: c.nome, telefone: c.telefone, email: c.email || '', data_nascimento: c.data_nascimento || '', observacoes: c.observacoes || '' }); setShowForm(true); }}>
+            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(c.id); setForm({ nome: c.nome, telefone: c.telefone, email: c.email || '', data_nascimento: c.data_nascimento || '', observacoes: c.observacoes || '', tags: c.tags || '' }); setShowForm(true); }}>
               <FiEdit2 size={12} />
             </button>
           </div>
@@ -228,12 +232,18 @@ function ProfissionaisSubTab() {
       </div>
       {showForm && (
         <div className="p-5 bg-white rounded-2xl shadow-card border border-secondary/30 space-y-3 animate-scaleIn">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Nome *</label><input className={inputCls} value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
-            <div><label className={labelCls}>Email (gera login)</label><input className={inputCls} type="email" placeholder="profissional@clinica.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-            {!editId && form.email && <div><label className={labelCls}>Senha *</label><input className={inputCls} type="password" placeholder="Senha do profissional" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} /></div>}
             <div><label className={labelCls}>Especialidade</label><input className={inputCls} value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} /></div>
             <div><label className={labelCls}>Telefone</label><input className={inputCls} value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
+            <div><label className={labelCls}>Email (gera login)</label><input className={inputCls} type="email" placeholder="profissional@clinica.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+            {!editId && (
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Senha de acesso *</label>
+                <input className={inputCls} type="password" placeholder="Senha para o profissional acessar o sistema" value={form.senha} onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} />
+                <p className="text-[11px] text-dark/40 mt-1">O profissional usará este email e senha para acessar sua própria agenda.</p>
+              </div>
+            )}
           </div>
           {!editId && form.email && <p className="text-xs text-accent bg-accent/10 px-3 py-1.5 rounded-xl">Um login será criado automaticamente para este profissional visualizar sua agenda.</p>}
           <div className="flex gap-3"><button className={btnPrimary} onClick={handleSave}>Salvar</button><button className={btnSecondary} onClick={() => setShowForm(false)}>Cancelar</button></div>
