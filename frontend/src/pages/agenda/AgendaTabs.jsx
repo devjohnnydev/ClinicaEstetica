@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiPlus, FiCalendar, FiEdit2, FiScissors, FiUser, FiClock } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiCalendar, FiEdit2, FiScissors, FiUser, FiClock, FiTrash2, FiArrowRight } from 'react-icons/fi';
 import {
   getAgendaClientes, criarAgendaCliente, atualizarAgendaCliente,
   getClienteAgendamentos, getPacientesDisponiveis,
@@ -11,10 +11,11 @@ import { Modal, inputCls, btnPrimary, btnSecondary, labelCls } from './AgendaMod
 
 const statusColors = {
   agendado: 'bg-blue-50 text-blue-600', confirmado: 'bg-green-50 text-green-600',
+  em_atendimento: 'bg-violet-50 text-violet-600',
   cancelado: 'bg-red-50 text-red-500', nao_compareceu: 'bg-orange-50 text-orange-500',
   concluido: 'bg-emerald-50 text-emerald-600',
 };
-const statusLabels = { agendado: 'Agendado', confirmado: 'Confirmado', cancelado: 'Cancelado', nao_compareceu: 'Não Compareceu', concluido: 'Concluído' };
+const statusLabels = { agendado: 'Agendado', confirmado: 'Confirmado', em_atendimento: 'Em Atendimento', cancelado: 'Cancelado', nao_compareceu: 'Não Compareceu', concluido: 'Concluído' };
 
 /* ═══════════ CLIENTES TAB ═══════════ */
 export function ClientesTab() {
@@ -187,10 +188,17 @@ function ServicosSubTab() {
               <FiScissors size={18} />
             </div>
             <div className="flex-1">
-              <p className="font-heading font-semibold text-sm">{s.nome}</p>
+              <p className="font-heading font-semibold text-sm">{s.nome}{!s.ativo && <span className="ml-2 text-[10px] text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">Inativo</span>}</p>
               <p className="text-xs text-dark/40">{s.duracao_minutos}min • R${s.preco?.toFixed(2)}</p>
             </div>
             <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(s.id); setForm({ nome: s.nome, categoria: s.categoria, preco: String(s.preco), duracao_minutos: String(s.duracao_minutos) }); setShowForm(true); }}><FiEdit2 size={14} /></button>
+            {s.ativo && (
+              <button className="text-red-300 hover:text-red-500 text-xs ml-1" title="Remover serviço" onClick={async () => {
+                if (window.confirm(`Deseja desativar o serviço "${s.nome}"?`)) {
+                  try { await deletarServico(s.id); load(); } catch {}
+                }
+              }}><FiTrash2 size={14} /></button>
+            )}
           </div>
         ))}
       </div>
@@ -284,20 +292,38 @@ function ListaEsperaSubTab() {
   const load = async () => { try { const r = await getListaEspera({}); setItems(r.data); } catch {} };
   useEffect(() => { load(); }, []);
 
+  const handleAgendar = async (le) => {
+    // Navigate to create appointment pre-filled from waiting list entry
+    // We'll use the modal by dispatching a custom event
+    const detail = {
+      agenda_cliente_id: le.agenda_cliente_id,
+      servico_id: le.servico_id,
+      data: le.data_desejada || new Date().toISOString().split('T')[0],
+      hora: le.horario_desejado?.slice(0, 5) || '',
+      le_id: le.id,
+    };
+    window.dispatchEvent(new CustomEvent('agenda:agendar-espera', { detail }));
+  };
+
   return (
     <div className="space-y-3">
       {items.map(le => (
-        <div key={le.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4">
+        <div key={le.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4 hover:shadow-hover transition-shadow">
           <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500"><FiClock size={16} /></div>
           <div className="flex-1">
             <p className="font-heading font-semibold text-sm">{le.cliente?.nome || '—'}</p>
             <p className="text-xs text-dark/40">
               {le.servico?.nome || 'Qualquer serviço'}
-              {le.data_desejada ? ` • ${le.data_desejada}` : ''}
+              {le.data_desejada ? ` • ${new Date(le.data_desejada + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
               {le.horario_desejado ? ` • ${le.horario_desejado.slice(0, 5)}` : ''}
             </p>
           </div>
-          <button className="text-red-400 hover:text-red-500 text-xs" onClick={async () => { await deletarListaEspera(le.id); load(); }}>Remover</button>
+          <button className="flex items-center gap-1 text-accent hover:text-accent-dark text-xs font-medium px-3 py-1.5 bg-accent/10 rounded-xl hover:bg-accent/20 transition-all" onClick={() => handleAgendar(le)}>
+            <FiArrowRight size={12} /> Agendar
+          </button>
+          <button className="text-red-300 hover:text-red-500 text-xs" onClick={async () => { try { await deletarListaEspera(le.id); load(); } catch {} }}>
+            <FiTrash2 size={14} />
+          </button>
         </div>
       ))}
       {!items.length && <p className="text-center text-dark/40 text-sm py-8">Lista de espera vazia</p>}

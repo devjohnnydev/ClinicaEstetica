@@ -164,10 +164,7 @@ def atualizar_agendamento(
     agora = now_br()
     ag_inicio = BRAZIL_TZ.localize(datetime.combine(ag.data, ag.hora_inicio))
 
-    # If trying to reschedule (change date/time), must be at least 10 min before
-    if payload.data is not None or payload.hora_inicio is not None:
-        if agora >= ag_inicio - timedelta(minutes=10):
-            raise HTTPException(400, "Reagendamento permitido apenas até 10 minutos antes do horário")
+    # Time restrictions for rescheduling have been removed.
 
     update_data = payload.dict(exclude_unset=True)
 

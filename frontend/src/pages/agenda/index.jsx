@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar, FiColumns, FiZoomIn } from 'react-icons/fi';
 import { getAgendamentos, getBloqueios, getAgendaDashboard, autoConcluir, getProfissionais } from '../../services/api';
 import { NovoAgendamentoModal, DetalhesAgendamentoModal, BloqueioModal, ListaEsperaModal } from './AgendaModals';
@@ -46,6 +46,7 @@ export default function Agenda() {
   const [showDetails, setShowDetails] = useState(null);
   const [showBloqueio, setShowBloqueio] = useState(false);
   const [showEspera, setShowEspera] = useState(false);
+  const [prefilledData, setPrefilledData] = useState(null);  // from waiting list
 
   const slotH = ZOOM_OPTIONS.find(z => z.value === zoom)?.slotH || 72;
 
@@ -68,6 +69,20 @@ export default function Agenda() {
 
   useEffect(() => { getProfissionais({}).then(r => setProfissionais(r.data)).catch(() => {}); }, []);
   useEffect(() => { loadAll(); }, [currentDate, view, filterProf]);
+
+  // Listen for waiting list "Agendar" events
+  useEffect(() => {
+    const handler = (e) => {
+      const d = e.detail;
+      setPrefilledData(d);
+      setNewInitDate(d.data || fmtDate(new Date()));
+      setNewInitTime(d.hora || '');
+      setTab('agenda');
+      setShowNew(true);
+    };
+    window.addEventListener('agenda:agendar-espera', handler);
+    return () => window.removeEventListener('agenda:agendar-espera', handler);
+  }, []);
 
   const getDateRange = () => {
     if (view === 'dia' || view === 'profissional') return { start: fmtDate(currentDate), end: fmtDate(currentDate) };
@@ -243,7 +258,7 @@ export default function Agenda() {
       {tab === 'clientes' && <ClientesTab />}
       {tab === 'procedimentos' && <ProcedimentosTab />}
 
-      <NovoAgendamentoModal open={showNew} onClose={() => setShowNew(false)} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} />
+      <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} />
       <DetalhesAgendamentoModal open={!!showDetails} onClose={() => setShowDetails(null)} agendamento={showDetails} onUpdate={loadAll} />
       <BloqueioModal open={showBloqueio} onClose={() => setShowBloqueio(false)} onSave={loadAll} profissionais={profissionais} />
       <ListaEsperaModal open={showEspera} onClose={() => setShowEspera(false)} onSave={loadAll} />

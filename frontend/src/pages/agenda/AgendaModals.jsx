@@ -112,7 +112,7 @@ function ClientPicker({ value, onChange, clients, setClients }) {
 /* ══════════════════════════════════════════════════════════════════
    NEW APPOINTMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
-export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime }) {
+export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime, prefilledData }) {
   const [clients, setClients] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [profissionais, setProfissionais] = useState([]);
@@ -129,14 +129,17 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
       getProfissionais({}).then(r => setProfissionais(r.data)).catch(() => {});
       setForm(f => ({
         ...f,
-        data: initialDate || new Date().toISOString().split('T')[0],
-        hora_inicio: initialTime || '',
+        data: prefilledData?.data || initialDate || new Date().toISOString().split('T')[0],
+        hora_inicio: prefilledData?.hora || initialTime || '',
         hora_fim: '',
-        agenda_cliente_id: null, servico_id: '', profissional_id: '', observacoes: '',
+        agenda_cliente_id: prefilledData?.agenda_cliente_id || null,
+        servico_id: prefilledData?.servico_id || '',
+        profissional_id: '',
+        observacoes: '',
       }));
       setError('');
     }
-  }, [open, initialDate, initialTime]);
+  }, [open, initialDate, initialTime, prefilledData]);
 
   // Auto-calculate end time
   useEffect(() => {
@@ -223,6 +226,19 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
   const [error, setError] = useState('');
 
   useEffect(() => { if (open) { setShowCancel(false); setShowEdit(false); setMotivo(''); setError(''); } }, [open, agendamento]);
+
+  useEffect(() => {
+    if (showEdit && editForm.servico_id && editForm.hora_inicio) {
+      const s = servicos.find(s => s.id === Number(editForm.servico_id));
+      if (s) {
+        const [h, m] = editForm.hora_inicio.split(':').map(Number);
+        const total = h * 60 + m + s.duracao_minutos;
+        const eh = String(Math.floor(total / 60)).padStart(2, '0');
+        const em = String(total % 60).padStart(2, '0');
+        setEditForm(f => ({ ...f, hora_fim: `${eh}:${em}` }));
+      }
+    }
+  }, [editForm.servico_id, editForm.hora_inicio, servicos, showEdit]);
 
   if (!open || !agendamento) return null;
   const ag = agendamento;
