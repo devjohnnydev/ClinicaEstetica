@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 const path = require('path');
@@ -7,17 +7,26 @@ const fs = require('fs');
 let sock = null;
 
 async function connectToWhatsApp() {
+    if (sock) {
+        sock.ev.removeAllListeners('connection.update');
+        sock.ev.removeAllListeners('creds.update');
+    }
+
     const authPath = path.join(__dirname, 'auth');
     if (!fs.existsSync(authPath)) fs.mkdirSync(authPath, { recursive: true });
 
     // A pasta `auth` vai armazenar os tokens de login. Persistência é crucial.
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`[WhatsApp] Versão do WhatsApp Web v${version.join('.')} (Última: ${isLatest})`);
 
     sock = makeWASocket({
+        version,
         auth: state,
         printQRInTerminal: false, // Override manual para imprimir um QR bonito
         logger: pino({ level: 'silent' }), // Silencia os logs imensos e barulhentos da LIB
-        browser: ['Clinica Worker', 'Chrome', '10.0'],
+        browser: Browsers.macOS('Desktop'),
+        syncFullHistory: false
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -32,9 +41,10 @@ async function connectToWhatsApp() {
 
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('[WhatsApp] Conexão fechada:', lastDisconnect?.error?.message, '| Reconectando=', shouldReconnect);
+            console.log(`[WhatsApp] Conexão fechada: ${lastDisconnect?.error?.message} | Reconectando=`, shouldReconnect);
             
             if (shouldReconnect) {
+                console.log('[WhatsApp] Aguardando 5s para restaurar...');
                 setTimeout(() => connectToWhatsApp(), 5000); // Retry simples 
             } else {
                 console.log('[WhatsApp] Desconectado Pelo Aparelho (Logged Out). Exclua a pasta auth/ e inicie o sistema novamente para gerar novo QR Code.');
