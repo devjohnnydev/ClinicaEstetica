@@ -39,6 +39,27 @@ def _prof_id_for_user(user: User):
     return None
 
 
+def _auto_concluir_agendamentos(db: Session):
+    agora = now_br()
+    hoje = agora.date()
+    hora_atual = agora.time()
+
+    # Update past days
+    db.query(Agendamento).filter(
+        Agendamento.status.notin_(["cancelado", "nao_compareceu", "concluido"]),
+        Agendamento.data < hoje
+    ).update({"status": "concluido"}, synchronize_session=False)
+
+    # Update today past time
+    db.query(Agendamento).filter(
+        Agendamento.status.notin_(["cancelado", "nao_compareceu", "concluido"]),
+        Agendamento.data == hoje,
+        Agendamento.hora_fim != None,
+        Agendamento.hora_fim <= hora_atual
+    ).update({"status": "concluido"}, synchronize_session=False)
+    
+    db.commit()
+
 # ═══════════════════════════════════════════════════════════════════
 # AGENDAMENTOS
 # ═══════════════════════════════════════════════════════════════════
@@ -53,6 +74,7 @@ def listar_agendamentos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _auto_concluir_agendamentos(db)
     q = db.query(Agendamento)
 
     # RBAC: professionals see only their own appointments
@@ -79,6 +101,7 @@ def obter_agendamento(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _auto_concluir_agendamentos(db)
     ag = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
     if not ag:
         raise HTTPException(404, "Agendamento não encontrado")
@@ -736,6 +759,7 @@ def dashboard_agenda(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _auto_concluir_agendamentos(db)
     hoje = now_br().date()
 
     total_hoje = db.query(Agendamento).filter(
