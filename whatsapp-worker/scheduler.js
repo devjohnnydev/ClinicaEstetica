@@ -68,8 +68,16 @@ Ficamos à disposição.`;
                 // Rate limiting simples de 4 segundos pra humanizar cliques 
                 await new Promise(r => setTimeout(r, 4000));
             } catch (err) {
-                console.error(`[Erro] Fallback ao processar agendamento ${ag.id}:`, err.message);
-                // Vai falhar agora mas tenta de novo 10 min depois pois não deu POST no back.
+                console.error(`[Erro] Falha ao enviar agendamento ${ag.id}:`, err.message);
+                
+                // Se a falha foi porque o número não existe, bloqueou a gente, ou deu TimeOut Eterno
+                // Temos que avisar a API que nós processamos, senão ele vai travar a lista de envios eternamente
+                try {
+                    console.log(`[API] ⚠️ Marcando id-${ag.id} como enviado forçadamente para pular da fila...`);
+                    await axios.post(`${API_BASE_URL}/agendamentos/marcar-enviado`, { id: ag.id }, { timeout: 10000 });
+                } catch (e) {
+                    console.error('[Erro] Não conseguiu nem forçar a baixa na API!', e.message);
+                }
             }
         }
     } catch (err) {

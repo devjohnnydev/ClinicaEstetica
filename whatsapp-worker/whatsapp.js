@@ -71,7 +71,33 @@ function getSocket() {
 
 async function sendWhatsAppMessage(jid, text) {
     if (!sock) throw new Error("Socket não inicializado");
-    await sock.sendMessage(jid, { text });
+    
+    // 1. Verifica se o número de fato tem conta no WhatsApp (Evita TimeOuts pesados do Baileys)
+    const phoneNum = jid.split('@')[0];
+    let [result] = await sock.onWhatsApp(phoneNum);
+    
+    // Fallback de Ouro para números do Brasil (Dilema do 9º Dígito)
+    // O WhatsApp salva alguns números BR *COM* o 9, e outros *SEM* o 9 dependendo do ano que a conta foi criada.
+    if (!result || !result.exists) {
+        if (phoneNum.startsWith('55') && phoneNum.length === 13) {
+            // Tenta remover o 9 (ex: 5511976904440 -> 551176904440)
+            const fallbackNum = phoneNum.slice(0, 4) + phoneNum.slice(5);
+            [result] = await sock.onWhatsApp(fallbackNum);
+            if (result?.exists) console.log(`[WhatsApp] Resolvido dígito 9 fantasma: ${phoneNum} -> ${fallbackNum}`);
+        } else if (phoneNum.startsWith('55') && phoneNum.length === 12) {
+            // Tenta adicionar o 9 (ex: 551176904440 -> 5511976904440)
+            const fallbackNum = phoneNum.slice(0, 4) + '9' + phoneNum.slice(4);
+            [result] = await sock.onWhatsApp(fallbackNum);
+            if (result?.exists) console.log(`[WhatsApp] Resolvido dígito 9 faltante: ${phoneNum} -> ${fallbackNum}`);
+        }
+    }
+    
+    if (!result || !result.exists) {
+        throw new Error("NUMERO_NAO_POSSUI_WHATSAPP");
+    }
+
+    // 2. Envia a mensagem pro JID validado pela Meta
+    await sock.sendMessage(result.jid, { text });
 }
 
 module.exports = { connectToWhatsApp, getSocket, sendWhatsAppMessage };
