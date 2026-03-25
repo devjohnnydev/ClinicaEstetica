@@ -4,8 +4,10 @@ import {
   getAgendaClientes, criarAgendaCliente, getPacientesDisponiveis,
   getServicos, getProfissionais, criarAgendamento, atualizarAgendamento,
   cancelarAgendamento, naoCompareceu, concluirAgendamento, confirmarAgendamento,
-  emAtendimento, criarBloqueio, criarListaEspera,
+  emAtendimento, criarBloqueio, criarListaEspera, deletarBloqueio,
 } from '../../services/api';
+
+function timeToMin(t) { if (!t) return 0; const p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
 
 /* ── Overlay base ─────────────────────────────────────────────── */
 function Modal({ open, onClose, title, children, wide }) {
@@ -112,7 +114,7 @@ function ClientPicker({ value, onChange, clients, setClients }) {
 /* ══════════════════════════════════════════════════════════════════
    NEW APPOINTMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
-export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime, prefilledData }) {
+export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime, prefilledData, bloqueios = [] }) {
   const [clients, setClients] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [profissionais, setProfissionais] = useState([]);
@@ -159,6 +161,22 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
     if (!form.agenda_cliente_id || !form.servico_id || !form.profissional_id || !form.data || !form.hora_inicio) {
       setError('Preencha todos os campos obrigatórios'); return;
     }
+    
+    // Check constraints: Bloqueio
+    if (form.hora_inicio) {
+       const formStart = timeToMin(form.hora_inicio);
+       const formEnd = form.hora_fim ? timeToMin(form.hora_fim) : formStart + 15;
+       const conflict = bloqueios.find(b => 
+          b.data === form.data &&
+          b.profissional_id === Number(form.profissional_id) &&
+          Math.max(formStart, timeToMin(b.hora_inicio?.slice(0,5))) < Math.min(formEnd, timeToMin(b.hora_fim?.slice(0,5)))
+       );
+       if (conflict) {
+          setError('O horário selecionado conflita com um bloqueio deste profissional.');
+          return;
+       }
+    }
+
     setLoading(true); setError('');
     try {
       await criarAgendamento({
@@ -436,8 +454,9 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
 /* ══════════════════════════════════════════════════════════════════
    BLOQUEIO MODAL
    ══════════════════════════════════════════════════════════════════ */
-export function BloqueioModal({ open, onClose, onSave, profissionais: profList }) {
+export function BloqueioModal({ open, onClose, onSave, profissionais: profList, bloqueio }) {
   const [profs, setProfs] = useState([]);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ profissional_id: '', data: '', hora_inicio: '', hora_fim: '', tipo: 'ausencia', motivo: '' });
   const [loading, setLoading] = useState(false);
 
@@ -445,14 +464,39 @@ export function BloqueioModal({ open, onClose, onSave, profissionais: profList }
     if (open) {
       if (profList?.length) setProfs(profList);
       else getProfissionais({}).then(r => setProfs(r.data)).catch(() => {});
-      setForm({ profissional_id: '', data: new Date().toISOString().split('T')[0], hora_inicio: '08:00', hora_fim: '18:00', tipo: 'ausencia', motivo: '' });
+      
+      if (bloqueio) {
+        setEditId(bloqueio.id);
+        setForm({
+          profissional_id: bloqueio.profissional_id || '',
+          data: bloqueio.data,
+          hora_inicio: bloqueio.hora_inicio?.slice(0, 5),
+          hora_fim: bloqueio.hora_fim?.slice(0, 5),
+          tipo: bloqueio.tipo || 'ausencia',
+          motivo: bloqueio.motivo || ''
+        });
+      } else {
+        setEditId(null);
+        setForm({ profissional_id: '', data: new Date().toISOString().split('T')[0], hora_inicio: '08:00', hora_fim: '18:00', tipo: 'ausencia', motivo: '' });
+      }
     }
-  }, [open]);
+  }, [open, bloqueio]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
+      if (editId) {
+        await deletarBloqueio(editId);
+      }
       await criarBloqueio({ ...form, profissional_id: Number(form.profissional_id), hora_inicio: form.hora_inicio + ':00', hora_fim: form.hora_fim + ':00' });
+      onSave(); onClose();
+    } catch {} finally { setLoading(false); }
+  };
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      if (editId) await deletarBloqueio(editId);
       onSave(); onClose();
     } catch {} finally { setLoading(false); }
   };
@@ -468,7 +512,15 @@ export function BloqueioModal({ open, onClose, onSave, profissionais: profList }
           <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
         </div>
         <div><label className={labelCls}>Motivo</label><textarea className={inputCls} rows={2} value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} /></div>
-        <div className="flex justify-end gap-3"><button className={btnSecondary} onClick={onClose}>Cancelar</button><button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Bloquear'}</button></div>
+        <div className="flex justify-between items-center gap-3 pt-2">
+          {editId ? (
+             <button className={btnDanger} onClick={handleDelete} disabled={loading}>{loading ? '...' : 'Desbloquear / Remover'}</button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button className={btnSecondary} onClick={onClose}>Cancelar</button>
+            <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Salvar Bloqueio'}</button>
+          </div>
+        </div>
       </div>
     </Modal>
   );

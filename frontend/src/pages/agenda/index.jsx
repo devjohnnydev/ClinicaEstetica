@@ -46,6 +46,7 @@ export default function Agenda() {
   const [newInitTime, setNewInitTime] = useState('');
   const [showDetails, setShowDetails] = useState(null);
   const [showBloqueio, setShowBloqueio] = useState(false);
+  const [editBloqueio, setEditBloqueio] = useState(null);
   const [showEspera, setShowEspera] = useState(false);
   const [showAniversariantesModal, setShowAniversariantesModal] = useState(false);
   const [prefilledData, setPrefilledData] = useState(null);  // from waiting list
@@ -235,7 +236,7 @@ export default function Agenda() {
                   {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               )}
-              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowBloqueio(true)}>
+              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => { setEditBloqueio(null); setShowBloqueio(true); }}>
                 <FiLock size={13} /> Bloquear
               </button>
               <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowEspera(true)}>
@@ -250,7 +251,8 @@ export default function Agenda() {
           {/* Calendar views */}
           {view === 'dia' && (
             <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
-              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails} />
+              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
+              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
           )}
           {view === 'semana' && (
             <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
@@ -264,7 +266,8 @@ export default function Agenda() {
           {view === 'profissional' && (
             <ProfessionalView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios}
               profissionais={profissionais} slotH={slotH} zoom={zoom}
-              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails} />
+              onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
+              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
           )}
         </div>
       )}
@@ -272,9 +275,9 @@ export default function Agenda() {
       {tab === 'clientes' && <ClientesTab />}
       {tab === 'procedimentos' && <ProcedimentosTab defaultSubTab={procSubTab} />}
 
-      <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} />
+      <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} bloqueios={bloqueios} />
       <DetalhesAgendamentoModal open={!!showDetails} onClose={() => setShowDetails(null)} agendamento={showDetails} onUpdate={loadAll} />
-      <BloqueioModal open={showBloqueio} onClose={() => setShowBloqueio(false)} onSave={loadAll} profissionais={profissionais} />
+      <BloqueioModal open={showBloqueio} onClose={() => { setShowBloqueio(false); setEditBloqueio(null); }} onSave={loadAll} profissionais={profissionais} bloqueio={editBloqueio} />
       <ListaEsperaModal open={showEspera} onClose={() => setShowEspera(false)} onSave={loadAll} />
       
       <Modal open={showAniversariantesModal} onClose={() => setShowAniversariantesModal(false)} title="Aniversariantes do Mês">
@@ -353,7 +356,7 @@ function buildSlots(zoom) {
 /* ═══════════════════════════════════════════════════════════
    DAY VIEW  — proportional, zoomable
    ═══════════════════════════════════════════════════════════ */
-function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent }) {
+function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
   const dateStr = fmtDate(date);
   const dayAgs = agendamentos.filter(a => a.data === dateStr && a.status !== 'cancelado');
   const dayBloqs = bloqueios.filter(b => b.data === dateStr);
@@ -383,8 +386,9 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
           const h = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) * pxPerMin, 20);
           return (
             <div key={`b-${b.id}`}
-              className="absolute right-2 bg-gray-100/90 border border-dashed border-gray-300 rounded-xl flex items-start p-2 pointer-events-none z-[1]"
-              style={{ top, height: h, left: '3.5rem' }}>
+              className="absolute right-2 bg-gray-100/90 border border-dashed border-gray-300 rounded-xl flex items-start p-2 pointer-events-auto cursor-pointer z-[2] hover:bg-gray-200/90 transition-colors"
+              style={{ top, height: h, left: '3.5rem' }}
+              onClick={(e) => { e.stopPropagation(); onClickBlock && onClickBlock(b); }}>
               <FiLock size={12} className="text-gray-400 mr-1.5 mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-gray-500">{b.tipo}</p>
@@ -468,7 +472,7 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
 /* ═══════════════════════════════════════════════════════════
    PROFESSIONAL VIEW — one column per professional
    ═══════════════════════════════════════════════════════════ */
-function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH, zoom, onClickSlot, onClickEvent }) {
+function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
   const dateStr = fmtDate(date);
   const profs = profissionais.filter(p => p.ativo !== false);
   const slots = buildSlots(zoom);
@@ -524,12 +528,13 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
                   const h = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) * pxPerMin, 16);
                   return (
                     <div key={`b-${b.id}`}
-                      className="absolute bg-gray-100/80 border border-dashed border-gray-300 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                      className="absolute bg-gray-100/80 border border-dashed border-gray-300 rounded-lg flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-gray-200/90 transition-colors z-[2]"
                       style={{
                         top, height: h,
                         left: `calc(56px + ${pi} * ((100% - 56px) / ${colCount}) + 2px)`,
                         width: `calc((100% - 56px) / ${colCount} - 4px)`,
-                      }}>
+                      }}
+                      onClick={(e) => { e.stopPropagation(); onClickBlock && onClickBlock(b); }}>
                       <FiLock size={10} className="text-gray-400" />
                     </div>
                   );
