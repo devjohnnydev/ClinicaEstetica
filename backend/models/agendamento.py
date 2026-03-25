@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Time, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Time, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base, get_brazil_time
 
@@ -14,6 +14,7 @@ class Agendamento(Base):
     hora_inicio = Column(Time, nullable=False)
     hora_fim = Column(Time, nullable=False)
     status = Column(String, nullable=False, default="agendado")
+    confirmacao_enviada = Column(Boolean, nullable=False, default=False)
     # Status values: agendado, confirmado, cancelado, nao_compareceu, concluido
     observacoes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)

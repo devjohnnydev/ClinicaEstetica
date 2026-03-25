@@ -164,6 +164,7 @@ class AgendamentoResponse(BaseModel):
     hora_inicio: time
     hora_fim: time
     status: str
+    confirmacao_enviada: bool = False
     observacoes: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

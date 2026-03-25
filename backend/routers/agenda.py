@@ -19,7 +19,7 @@ from schemas.agenda import (
     AgendaClienteCreate, AgendaClienteUpdate, AgendaClienteResponse,
     ServicoCreate, ServicoUpdate, ServicoResponse,
     ProfissionalCreate, ProfissionalUpdate, ProfissionalResponse, ProfissionalServicoIds,
-    AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse,
+    AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, MarcarEnviadoRequest,
     BloqueioCreate, BloqueioResponse,
     ListaEsperaCreate, ListaEsperaUpdate, ListaEsperaResponse,
 )
@@ -93,6 +93,46 @@ def listar_agendamentos(
     if cliente_id:
         q = q.filter(Agendamento.agenda_cliente_id == cliente_id)
     return q.order_by(Agendamento.data, Agendamento.hora_inicio).all()
+
+
+@router.get("/agendamentos/amanha")
+def get_agendamentos_amanha(
+    db: Session = Depends(get_db)
+):
+    """Retorna agendamentos de amanhã que ainda não tiveram o WhatsApp de confirmação enviado."""
+    amanha = now_br().date() + timedelta(days=1)
+    
+    agendamentos = db.query(Agendamento).filter(
+        Agendamento.data == amanha,
+        Agendamento.status.in_(["agendado", "confirmado"]),
+        Agendamento.confirmacao_enviada == False
+    ).all()
+    
+    return [
+        {
+            "id": ag.id,
+            "nome_cliente": ag.cliente.nome if ag.cliente else "Cliente",
+            "telefone": ag.cliente.telefone if ag.cliente else "",
+            "data_agendamento": str(ag.data),
+            "hora_agendamento": str(ag.hora_inicio)[:5],
+            "profissional": ag.profissional.nome if ag.profissional else "Profissional",
+            "procedimento": ag.servico.nome if ag.servico else "Procedimento",
+            "confirmacao_enviada": ag.confirmacao_enviada
+        }
+        for ag in agendamentos
+    ]
+
+@router.post("/agendamentos/marcar-enviado")
+def marcar_enviado(
+    payload: MarcarEnviadoRequest,
+    db: Session = Depends(get_db)
+):
+    ag = db.query(Agendamento).filter(Agendamento.id == payload.id).first()
+    if not ag:
+        raise HTTPException(404, "Agendamento não encontrado")
+    ag.confirmacao_enviada = True
+    db.commit()
+    return {"message": "Marcado como enviado"}
 
 
 @router.get("/agendamentos/{agendamento_id}", response_model=AgendamentoResponse)
