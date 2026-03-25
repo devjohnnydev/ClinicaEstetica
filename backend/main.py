@@ -138,6 +138,8 @@ def run_migrations_and_seed():
             ("users", "profissional_id", "INTEGER"),
             # agenda_clientes table
             ("agenda_clientes", "tags", "VARCHAR"),
+            # agendamentos table
+            ("agendamentos", "confirmacao_enviada", "BOOLEAN DEFAULT FALSE"),
         ]
         for table, col, col_type in migrations:
             try:
