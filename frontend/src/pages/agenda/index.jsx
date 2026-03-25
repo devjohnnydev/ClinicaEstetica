@@ -32,6 +32,7 @@ const getStatus = (s) => STATUS_MAP[s] || STATUS_MAP.agendado;
 
 export default function Agenda() {
   const [tab, setTab] = useState('agenda');
+  const [procSubTab, setProcSubTab] = useState('servicos');
   const [view, setView] = useState('dia');
   const [zoom, setZoom] = useState(60);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -140,7 +141,7 @@ export default function Agenda() {
             { label: 'Hoje', value: dashboard.total_hoje, color: 'from-accent to-accent-dark' },
             { label: 'Confirmados', value: dashboard.confirmados, color: 'from-emerald-400 to-teal-500' },
             { label: 'Concluídos', value: dashboard.concluidos, color: 'from-teal-400 to-cyan-500' },
-            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500', onClick: () => setShowEspera(true) },
+            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500', onClick: () => { setProcSubTab('espera'); setTab('procedimentos'); } },
           ].map((c, i) => (
             <div key={i} onClick={c.onClick} className={`bg-white rounded-2xl shadow-card p-4 border border-secondary/20 hover:shadow-hover transition-shadow relative overflow-hidden ${c.onClick ? 'cursor-pointer' : ''}`}>
               {c.onClick && <div className="absolute inset-y-0 left-0 w-1 bg-amber-400 rounded-l-2xl" />}
@@ -269,7 +270,7 @@ export default function Agenda() {
       )}
 
       {tab === 'clientes' && <ClientesTab />}
-      {tab === 'procedimentos' && <ProcedimentosTab />}
+      {tab === 'procedimentos' && <ProcedimentosTab defaultSubTab={procSubTab} />}
 
       <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} />
       <DetalhesAgendamentoModal open={!!showDetails} onClose={() => setShowDetails(null)} agendamento={showDetails} onUpdate={loadAll} />
@@ -366,10 +367,10 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
       <div className="overflow-y-auto max-h-[calc(100vh-320px)]" style={{ position: 'relative', minHeight: gridHeight }}>
         {slots.map((s, i) => (
           <div key={i}
-            className="flex border-b border-primary/60 cursor-pointer hover:bg-primary/20 transition-colors"
+            className="flex border-b border-secondary/50 cursor-pointer hover:bg-primary/20 transition-colors"
             style={{ height: slotH }}
             onClick={() => onClickSlot(s.label)}>
-            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">
+            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">
               {s.m === 0 ? s.label : ''}
             </div>
             <div className="flex-1 bg-white/50" />
@@ -423,13 +424,13 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
       <div style={{ minWidth: 700 }}>
-        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/60 sticky top-0 bg-soft z-10 shadow-sm">
-          <div className="border-r border-primary/60 bg-soft/80" />
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white">
+          <div className="border-r border-secondary/50 bg-secondary/10" />
           {days.map((d, i) => {
             const isToday = fmtDate(d) === fmtDate(new Date());
             return (
-              <div key={i} className={`text-center py-2.5 border-r border-primary/60 ${isToday ? 'bg-accent/10 border-b-[3px] border-b-accent' : 'bg-soft/50'}`}>
-                <p className={`text-[10px] uppercase font-semibold ${isToday ? 'text-accent' : 'text-dark/50'}`}>{DAYS_SHORT[d.getDay()]}</p>
+              <div key={i} className={`text-center py-2.5 border-r border-secondary/50 ${isToday ? 'bg-accent/10 border-b-[3px] border-b-accent' : 'bg-secondary/5'}`}>
+                <p className={`text-[10px] uppercase font-semibold ${isToday ? 'text-accent' : 'text-dark/60'}`}>{DAYS_SHORT[d.getDay()]}</p>
                 <p className={`text-base font-heading font-bold mt-0.5 ${isToday ? 'text-accent' : 'text-dark'}`}>{d.getDate()}</p>
               </div>
             );
@@ -437,10 +438,10 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
         </div>
         <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
-            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/60" style={{ height: slotH }}>
-              <div className="px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">{s.m === 0 ? s.label : ''}</div>
+            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50" style={{ height: slotH }}>
+              <div className="px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
               {days.map((d, di) => (
-                <div key={di} className={`border-r border-primary/40 hover:bg-primary/20 cursor-pointer transition-colors ${fmtDate(d) === fmtDate(new Date()) ? 'bg-accent/[0.03]' : 'bg-white/50'}`}
+                <div key={di} className={`border-r border-secondary/40 hover:bg-primary/20 cursor-pointer transition-colors ${fmtDate(d) === fmtDate(new Date()) ? 'bg-accent/[0.03]' : 'bg-white/50'}`}
                   onClick={() => onClickSlot(fmtDate(d), s.label)} />
               ))}
             </div>
@@ -482,18 +483,18 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
       <div style={{ minWidth: Math.max(600, colCount * 200) }}>
         {/* Header */}
-        <div className={`grid border-b border-primary/60 sticky top-0 bg-soft z-10 shadow-sm`}
+        <div className={`grid border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white`}
           style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
-          <div className="border-r border-primary/60 flex items-center justify-center py-2 bg-soft/80">
-            <FiColumns size={16} className="text-dark/40" />
+          <div className="border-r border-secondary/50 flex items-center justify-center py-2 bg-secondary/10">
+            <FiColumns size={16} className="text-dark/50" />
           </div>
           {profs.map(p => (
-            <div key={p.id} className="text-center py-3 border-r border-primary/60 px-2 bg-soft/50">
+            <div key={p.id} className="text-center py-3 border-r border-secondary/50 px-2 bg-secondary/5">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-sm flex items-center justify-center mx-auto mb-1 shadow-sm">
                 {p.nome?.charAt(0)}
               </div>
               <p className="text-xs font-semibold text-dark truncate">{p.nome}</p>
-              {p.especialidade && <p className="text-[10px] text-dark/50 truncate">{p.especialidade}</p>}
+              {p.especialidade && <p className="text-[10px] text-dark/60 truncate">{p.especialidade}</p>}
             </div>
           ))}
         </div>
@@ -501,11 +502,11 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
         {/* Grid body */}
         <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
-            <div key={i} className="border-b border-primary/60"
+            <div key={i} className="border-b border-secondary/50"
               style={{ height: slotH, display: 'grid', gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
-              <div className="px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">{s.m === 0 ? s.label : ''}</div>
+              <div className="px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
               {profs.map((p, pi) => (
-                <div key={pi} className="border-r border-primary/40 hover:bg-primary/20 cursor-pointer transition-colors bg-white/50"
+                <div key={pi} className="border-r border-secondary/40 hover:bg-primary/20 cursor-pointer transition-colors bg-white/50"
                   onClick={() => onClickSlot(s.label)} />
               ))}
             </div>

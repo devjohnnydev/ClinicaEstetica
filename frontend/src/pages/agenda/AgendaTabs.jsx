@@ -127,8 +127,13 @@ export function ClientesTab() {
 }
 
 /* ═══════════ PROCEDIMENTOS TAB ═══════════ */
-export function ProcedimentosTab() {
-  const [subTab, setSubTab] = useState('servicos');
+export function ProcedimentosTab({ defaultSubTab = 'servicos' }) {
+  const [subTab, setSubTab] = useState(defaultSubTab);
+
+  useEffect(() => {
+    setSubTab(defaultSubTab);
+  }, [defaultSubTab]);
+
   return (
     <div className="animate-fadeIn">
       <div className="flex gap-2 mb-4">
