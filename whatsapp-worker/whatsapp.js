@@ -37,6 +37,15 @@ async function connectToWhatsApp() {
         if (qr) {
             console.log('\n[WhatsApp] Escaneie o QR Code abaixo para autenticar:');
             qrcode.generate(qr, { small: true });
+            
+            console.log('\n======================================================');
+            console.log('⚠️ SE O QR CODE ACIMA ESTIVER ESTICADO/DEFORMADO NO RAILWAY:');
+            console.log('Isso ocorre pelo espaçamento alto das linhas da nuvem do Railway.');
+            console.log('1. Copie todo este texto abaixo (letra por letra):');
+            console.log('\n' + qr + '\n');
+            console.log('2. Cole-o no site: https://www.the-qrcode-generator.com ou gerador similar.');
+            console.log('3. Escolha a opção "Text" ou "Texto Livre" e escaneie no celular.');
+            console.log('======================================================\n');
         }
 
         if (connection === 'close') {
