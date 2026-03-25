@@ -1,3 +1,8 @@
+const crypto = require('crypto');
+if (!global.crypto) {
+    global.crypto = crypto.webcrypto || crypto;
+}
+
 const { connectToWhatsApp } = require('./whatsapp');
 const { startScheduler } = require('./scheduler');
 
