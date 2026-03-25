@@ -40,11 +40,12 @@ async function connectToWhatsApp() {
             
             console.log('\n======================================================');
             console.log('⚠️ SE O QR CODE ACIMA ESTIVER ESTICADO/DEFORMADO NO RAILWAY:');
-            console.log('Isso ocorre pelo espaçamento alto das linhas da nuvem do Railway.');
-            console.log('1. Copie todo este texto abaixo (letra por letra):');
-            console.log('\n' + qr + '\n');
-            console.log('2. Cole-o no site: https://www.the-qrcode-generator.com ou gerador similar.');
-            console.log('3. Escolha a opção "Text" ou "Texto Livre" e escaneie no celular.');
+            console.log('CLIQUE NO LINK ABAIXO para abrir a imagem perfeita do QR Code:');
+            
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+            console.log('\n➜ ' + qrImageUrl + '\n');
+            
+            console.log('Apenas abra esse link no seu navegador, pegue o WhatsApp do seu celular, e escaneie a imagem que aparecer na tela.');
             console.log('======================================================\n');
         }
 
