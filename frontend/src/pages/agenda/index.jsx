@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar, FiColumns, FiZoomIn } from 'react-icons/fi';
 import { getAgendamentos, getBloqueios, getAgendaDashboard, autoConcluir, getProfissionais } from '../../services/api';
-import { NovoAgendamentoModal, DetalhesAgendamentoModal, BloqueioModal, ListaEsperaModal } from './AgendaModals';
+import { NovoAgendamentoModal, DetalhesAgendamentoModal, BloqueioModal, ListaEsperaModal, Modal } from './AgendaModals';
 import { ClientesTab, ProcedimentosTab } from './AgendaTabs';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 07:00 – 20:00
@@ -46,6 +46,7 @@ export default function Agenda() {
   const [showDetails, setShowDetails] = useState(null);
   const [showBloqueio, setShowBloqueio] = useState(false);
   const [showEspera, setShowEspera] = useState(false);
+  const [showAniversariantesModal, setShowAniversariantesModal] = useState(false);
   const [prefilledData, setPrefilledData] = useState(null);  // from waiting list
 
   const slotH = ZOOM_OPTIONS.find(z => z.value === zoom)?.slotH || 72;
@@ -139,11 +140,14 @@ export default function Agenda() {
             { label: 'Hoje', value: dashboard.total_hoje, color: 'from-accent to-accent-dark' },
             { label: 'Confirmados', value: dashboard.confirmados, color: 'from-emerald-400 to-teal-500' },
             { label: 'Concluídos', value: dashboard.concluidos, color: 'from-teal-400 to-cyan-500' },
-            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500' },
+            { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500', onClick: () => setShowEspera(true) },
           ].map((c, i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-card p-4 border border-secondary/20 hover:shadow-hover transition-shadow">
-              <p className="text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p>
-              <p className="text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p>
+            <div key={i} onClick={c.onClick} className={`bg-white rounded-2xl shadow-card p-4 border border-secondary/20 hover:shadow-hover transition-shadow relative overflow-hidden ${c.onClick ? 'cursor-pointer' : ''}`}>
+              {c.onClick && <div className="absolute inset-y-0 left-0 w-1 bg-amber-400 rounded-l-2xl" />}
+              <div className={c.onClick ? 'pl-1' : ''}>
+                <p className="text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p>
+                <p className="text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -155,11 +159,20 @@ export default function Agenda() {
           <div className="w-8 h-8 rounded-xl bg-pink-100 flex items-center justify-center shrink-0">
             <FiCalendar size={16} className="text-pink-500" />
           </div>
-          <div className="min-w-0">
-            <p className="font-heading font-semibold text-sm text-dark">Aniversariantes</p>
-            <p className="text-xs text-dark/50 truncate">
-              {dashboard.aniversariantes.map(a => `${a.nome} (dia ${a.dia})`).join(' · ')}
-            </p>
+          <div className="min-w-0 flex-1">
+            <p className="font-heading font-semibold text-sm text-dark">Aniversariantes hoje</p>
+            {dashboard.aniversariantes.length > 2 ? (
+              <p className="text-xs text-dark/60 mt-0.5">
+                Você tem <strong>{dashboard.aniversariantes.length}</strong> clientes fazendo aniversário!{' '}
+                <button onClick={() => setShowAniversariantesModal(true)} className="ml-1 text-pink-600 hover:text-pink-700 font-semibold underline decoration-pink-300">
+                  Ver lista
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-dark/60 truncate mt-0.5">
+                {dashboard.aniversariantes.map(a => `${a.nome} (dia ${a.dia})`).join(' · ')}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -262,6 +275,22 @@ export default function Agenda() {
       <DetalhesAgendamentoModal open={!!showDetails} onClose={() => setShowDetails(null)} agendamento={showDetails} onUpdate={loadAll} />
       <BloqueioModal open={showBloqueio} onClose={() => setShowBloqueio(false)} onSave={loadAll} profissionais={profissionais} />
       <ListaEsperaModal open={showEspera} onClose={() => setShowEspera(false)} onSave={loadAll} />
+      
+      <Modal open={showAniversariantesModal} onClose={() => setShowAniversariantesModal(false)} title="Aniversariantes do Mês">
+        <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+          {dashboard?.aniversariantes?.map((a, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 bg-pink-50/50 rounded-xl border border-pink-100">
+              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold shrink-0">
+                🎂
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-dark text-sm">{a.nome}</p>
+                <p className="text-xs text-dark/50">Dia {a.dia}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -337,13 +366,13 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
       <div className="overflow-y-auto max-h-[calc(100vh-320px)]" style={{ position: 'relative', minHeight: gridHeight }}>
         {slots.map((s, i) => (
           <div key={i}
-            className="flex border-b border-primary/30 cursor-pointer hover:bg-primary/10 transition-colors"
+            className="flex border-b border-primary/60 cursor-pointer hover:bg-primary/20 transition-colors"
             style={{ height: slotH }}
             onClick={() => onClickSlot(s.label)}>
-            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1 text-[10px] text-dark/30 font-medium border-r border-primary/40 select-none">
+            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">
               {s.m === 0 ? s.label : ''}
             </div>
-            <div className="flex-1" />
+            <div className="flex-1 bg-white/50" />
           </div>
         ))}
 
@@ -394,24 +423,24 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
       <div style={{ minWidth: 700 }}>
-        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/30 sticky top-0 bg-white z-10">
-          <div className="border-r border-primary/40" />
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/60 sticky top-0 bg-soft z-10 shadow-sm">
+          <div className="border-r border-primary/60 bg-soft/80" />
           {days.map((d, i) => {
             const isToday = fmtDate(d) === fmtDate(new Date());
             return (
-              <div key={i} className={`text-center py-2.5 border-r border-primary/40 ${isToday ? 'bg-accent/5' : ''}`}>
-                <p className="text-[10px] text-dark/35 uppercase font-semibold">{DAYS_SHORT[d.getDay()]}</p>
-                <p className={`text-sm font-heading font-bold mt-0.5 ${isToday ? 'bg-accent text-white w-7 h-7 rounded-full flex items-center justify-center mx-auto' : 'text-dark'}`}>{d.getDate()}</p>
+              <div key={i} className={`text-center py-2.5 border-r border-primary/60 ${isToday ? 'bg-accent/10 border-b-[3px] border-b-accent' : 'bg-soft/50'}`}>
+                <p className={`text-[10px] uppercase font-semibold ${isToday ? 'text-accent' : 'text-dark/50'}`}>{DAYS_SHORT[d.getDay()]}</p>
+                <p className={`text-base font-heading font-bold mt-0.5 ${isToday ? 'text-accent' : 'text-dark'}`}>{d.getDate()}</p>
               </div>
             );
           })}
         </div>
         <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
-            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/20" style={{ height: slotH }}>
-              <div className="px-2 pt-1 text-[10px] text-dark/25 font-medium border-r border-primary/40">{s.m === 0 ? s.label : ''}</div>
+            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-primary/60" style={{ height: slotH }}>
+              <div className="px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">{s.m === 0 ? s.label : ''}</div>
               {days.map((d, di) => (
-                <div key={di} className="border-r border-primary/15 hover:bg-primary/10 cursor-pointer transition-colors"
+                <div key={di} className={`border-r border-primary/40 hover:bg-primary/20 cursor-pointer transition-colors ${fmtDate(d) === fmtDate(new Date()) ? 'bg-accent/[0.03]' : 'bg-white/50'}`}
                   onClick={() => onClickSlot(fmtDate(d), s.label)} />
               ))}
             </div>
@@ -453,18 +482,18 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
       <div style={{ minWidth: Math.max(600, colCount * 200) }}>
         {/* Header */}
-        <div className={`grid border-b border-secondary/30 sticky top-0 bg-white z-10`}
+        <div className={`grid border-b border-primary/60 sticky top-0 bg-soft z-10 shadow-sm`}
           style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
-          <div className="border-r border-primary/40 flex items-center justify-center py-2">
-            <FiColumns size={14} className="text-dark/30" />
+          <div className="border-r border-primary/60 flex items-center justify-center py-2 bg-soft/80">
+            <FiColumns size={16} className="text-dark/40" />
           </div>
           {profs.map(p => (
-            <div key={p.id} className="text-center py-3 border-r border-primary/40 px-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-xs flex items-center justify-center mx-auto mb-1">
+            <div key={p.id} className="text-center py-3 border-r border-primary/60 px-2 bg-soft/50">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-sm flex items-center justify-center mx-auto mb-1 shadow-sm">
                 {p.nome?.charAt(0)}
               </div>
               <p className="text-xs font-semibold text-dark truncate">{p.nome}</p>
-              {p.especialidade && <p className="text-[10px] text-dark/40 truncate">{p.especialidade}</p>}
+              {p.especialidade && <p className="text-[10px] text-dark/50 truncate">{p.especialidade}</p>}
             </div>
           ))}
         </div>
@@ -472,11 +501,11 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
         {/* Grid body */}
         <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
-            <div key={i} className="border-b border-primary/20"
+            <div key={i} className="border-b border-primary/60"
               style={{ height: slotH, display: 'grid', gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
-              <div className="px-2 pt-1 text-[10px] text-dark/25 font-medium border-r border-primary/40 select-none">{s.m === 0 ? s.label : ''}</div>
+              <div className="px-2 pt-1.5 text-[11px] text-dark/60 font-medium bg-soft/80 border-r border-primary/60 select-none">{s.m === 0 ? s.label : ''}</div>
               {profs.map((p, pi) => (
-                <div key={pi} className="border-r border-primary/15 hover:bg-primary/10 cursor-pointer transition-colors"
+                <div key={pi} className="border-r border-primary/40 hover:bg-primary/20 cursor-pointer transition-colors bg-white/50"
                   onClick={() => onClickSlot(s.label)} />
               ))}
             </div>
