@@ -336,14 +336,19 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
   };
 
   const saveEdit = async () => {
+    if (!editForm.servico_id || !editForm.profissional_id || !editForm.data || !editForm.hora_inicio) {
+      setError('Preencha todos os campos do agendamento (Profissional e Serviço)'); return;
+    }
+
     setLoading(true); setError('');
     try {
       await atualizarAgendamento(ag.id, {
         data: editForm.data,
         hora_inicio: editForm.hora_inicio + ':00',
-        hora_fim: editForm.hora_fim + ':00',
-        servico_id: editForm.servico_id,
-        profissional_id: editForm.profissional_id,
+        hora_fim: editForm.hora_fim ? editForm.hora_fim + ':00' : undefined,
+        servico_id: Number(editForm.servico_id),
+        profissional_id: Number(editForm.profissional_id),
+        status: (ag.status === 'nao_compareceu' || ag.status === 'cancelado') ? 'agendado' : ag.status,
         observacoes: editForm.observacoes || undefined,
       });
       onUpdate(); onClose();
