@@ -157,6 +157,20 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
     }
   }, [form.servico_id, form.hora_inicio, servicos]);
 
+  useEffect(() => {
+    if (form.profissional_id && form.servico_id) {
+      const prof = profissionais.find(p => p.id === Number(form.profissional_id));
+      if (prof && prof.servicos) {
+        if (!prof.servicos.some(s => s.id === Number(form.servico_id))) {
+          setForm(f => ({ ...f, servico_id: '' }));
+        }
+      }
+    }
+  }, [form.profissional_id, profissionais]);
+
+  const profSelecionado = profissionais.find(p => p.id === Number(form.profissional_id));
+  const availableServicos = form.profissional_id && profSelecionado ? (profSelecionado.servicos || []) : servicos;
+
   const handleSave = async () => {
     if (!form.agenda_cliente_id || !form.servico_id || !form.profissional_id || !form.data || !form.hora_inicio) {
       setError('Preencha todos os campos obrigatórios'); return;
@@ -200,19 +214,19 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
         {error && <div className="p-3 bg-red-50 text-red-500 rounded-xl text-sm flex items-center gap-2"><FiAlertCircle size={16}/>{error}</div>}
         <ClientPicker value={form.agenda_cliente_id} onChange={v => setForm(f => ({ ...f, agenda_cliente_id: v }))} clients={clients} setClients={setClients} />
         <div>
-          <label className={labelCls}>Procedimento *</label>
-          <select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}>
-            <option value="">Selecione...</option>
-            {servicos.map(s => (
-              <option key={s.id} value={s.id}>{s.nome} — {s.duracao_minutos}min — R${s.preco?.toFixed(2)}</option>
-            ))}
-          </select>
-        </div>
-        <div>
           <label className={labelCls}>Profissional *</label>
           <select className={inputCls} value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}>
             <option value="">Selecione...</option>
             {profissionais.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Procedimento *</label>
+          <select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))} disabled={!form.profissional_id}>
+            <option value="">Selecione...</option>
+            {availableServicos.map(s => (
+              <option key={s.id} value={s.id}>{s.nome} — {s.duracao_minutos}min — R${s.preco?.toFixed(2)}</option>
+            ))}
           </select>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -257,6 +271,20 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
       }
     }
   }, [editForm.servico_id, editForm.hora_inicio, servicos, showEdit]);
+
+  useEffect(() => {
+    if (showEdit && editForm.profissional_id && editForm.servico_id) {
+      const prof = profissionais.find(p => p.id === Number(editForm.profissional_id));
+      if (prof && prof.servicos) {
+        if (!prof.servicos.some(s => s.id === Number(editForm.servico_id))) {
+          setEditForm(f => ({ ...f, servico_id: '' }));
+        }
+      }
+    }
+  }, [editForm.profissional_id, profissionais, showEdit]);
+
+  const profEditSelecionado = profissionais.find(p => p.id === Number(editForm.profissional_id));
+  const availableEditServicos = editForm.profissional_id && profEditSelecionado ? (profEditSelecionado.servicos || []) : servicos;
 
   if (!open || !agendamento) return null;
   const ag = agendamento;
@@ -380,8 +408,8 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
               <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={editForm.hora_fim} onChange={e => setEditForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelCls}>Serviço</label><select className={inputCls} value={editForm.servico_id} onChange={e => setEditForm(f => ({ ...f, servico_id: Number(e.target.value) }))}>{servicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>
-              <div><label className={labelCls}>Profissional</label><select className={inputCls} value={editForm.profissional_id} onChange={e => setEditForm(f => ({ ...f, profissional_id: Number(e.target.value) }))}>{profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
+              <div><label className={labelCls}>Profissional</label><select className={inputCls} value={editForm.profissional_id} onChange={e => setEditForm(f => ({ ...f, profissional_id: Number(e.target.value) }))}><option value="">Selecione...</option>{profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
+              <div><label className={labelCls}>Serviço</label><select className={inputCls} value={editForm.servico_id} onChange={e => setEditForm(f => ({ ...f, servico_id: Number(e.target.value) }))} disabled={!editForm.profissional_id}><option value="">Selecione...</option>{availableEditServicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>
             </div>
             <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={editForm.observacoes} onChange={e => setEditForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
             <div className="flex gap-2">
