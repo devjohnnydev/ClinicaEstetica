@@ -232,3 +232,6 @@ class ListaEsperaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MarcarEnviadoRequest(BaseModel):
+    id: int

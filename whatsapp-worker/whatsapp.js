@@ -2,12 +2,16 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = requi
 const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 const path = require('path');
+const fs = require('fs');
 
 let sock = null;
 
 async function connectToWhatsApp() {
+    const authPath = path.join(__dirname, 'auth');
+    if (!fs.existsSync(authPath)) fs.mkdirSync(authPath, { recursive: true });
+
     // A pasta `auth` vai armazenar os tokens de login. Persistência é crucial.
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth'));
+    const { state, saveCreds } = await useMultiFileAuthState(authPath);
 
     sock = makeWASocket({
         auth: state,
@@ -27,11 +31,11 @@ async function connectToWhatsApp() {
         }
 
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('[WhatsApp] Conexão fechada. Reconectando=', shouldReconnect);
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log('[WhatsApp] Conexão fechada:', lastDisconnect?.error?.message, '| Reconectando=', shouldReconnect);
             
             if (shouldReconnect) {
-                setTimeout(connectToWhatsApp, 5000); // Retry simples 
+                setTimeout(() => connectToWhatsApp(), 5000); // Retry simples 
             } else {
                 console.log('[WhatsApp] Desconectado Pelo Aparelho (Logged Out). Exclua a pasta auth/ e inicie o sistema novamente para gerar novo QR Code.');
             }
