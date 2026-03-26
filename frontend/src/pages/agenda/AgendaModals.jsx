@@ -229,7 +229,7 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
             ))}
           </select>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div><label className={labelCls}>Data *</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} /></div>
           <div><label className={labelCls}>Início *</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
           <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
@@ -375,7 +375,7 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
         </div>
 
         {/* Details grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { label: 'Cliente', val: ag.cliente?.nome, sub: ag.cliente?.telefone },
             { label: 'Profissional', val: ag.profissional?.nome },
@@ -404,17 +404,17 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
               <FiEdit2 size={14} className="text-accent" />
               <p className="text-sm font-semibold text-dark">Editar / Reagendar</p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><label className={labelCls}>Data</label><input type="date" className={inputCls} value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))} /></div>
               <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={editForm.hora_inicio} onChange={e => setEditForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
               <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={editForm.hora_fim} onChange={e => setEditForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className={labelCls}>Profissional</label><select className={inputCls} value={editForm.profissional_id} onChange={e => setEditForm(f => ({ ...f, profissional_id: Number(e.target.value) }))}><option value="">Selecione...</option>{profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
               <div><label className={labelCls}>Serviço</label><select className={inputCls} value={editForm.servico_id} onChange={e => setEditForm(f => ({ ...f, servico_id: Number(e.target.value) }))} disabled={!editForm.profissional_id}><option value="">Selecione...</option>{availableEditServicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>
             </div>
             <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={editForm.observacoes} onChange={e => setEditForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button className={btnPrimary} onClick={saveEdit} disabled={loading}>{loading ? 'Salvando...' : 'Salvar Alterações'}</button>
               <button className={btnSecondary} onClick={() => setShowEdit(false)}>Voltar</button>
             </div>
@@ -521,13 +521,13 @@ export function BloqueioModal({ open, onClose, onSave, profissionais: profList, 
       <div className="space-y-4">
         <div><label className={labelCls}>Profissional *</label><select className={inputCls} value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}><option value="">Selecione...</option>{profs.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
         <div><label className={labelCls}>Tipo</label><select className={inputCls} value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}><option value="ausencia">Ausência</option><option value="atestado">Atestado</option><option value="intervalo">Intervalo</option></select></div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div><label className={labelCls}>Data</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} /></div>
           <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
           <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
         </div>
         <div><label className={labelCls}>Motivo</label><textarea className={inputCls} rows={2} value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} /></div>
-        <div className="flex justify-between items-center gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
           {editId ? (
              <button className={btnDanger} onClick={handleDelete} disabled={loading}>{loading ? '...' : 'Desbloquear / Remover'}</button>
           ) : <div />}
@@ -576,7 +576,7 @@ export function ListaEsperaModal({ open, onClose, onSave }) {
       <div className="space-y-4">
         <ClientPicker value={form.agenda_cliente_id} onChange={v => setForm(f => ({ ...f, agenda_cliente_id: v }))} clients={clients} setClients={setClients} />
         <div><label className={labelCls}>Procedimento desejado</label><select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}><option value="">Qualquer</option>{servicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label className={labelCls}>Data desejada</label><input type="date" className={inputCls} value={form.data_desejada} onChange={e => setForm(f => ({ ...f, data_desejada: e.target.value }))} /></div>
           <div><label className={labelCls}>Horário desejado</label><input type="time" className={inputCls} value={form.horario_desejado} onChange={e => setForm(f => ({ ...f, horario_desejado: e.target.value }))} /></div>
         </div>

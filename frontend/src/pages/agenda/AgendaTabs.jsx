@@ -58,12 +58,12 @@ export function ClientesTab() {
 
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
         <div className="relative flex-1">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-dark/30" size={16} />
           <input className={`${inputCls} pl-10`} placeholder="Buscar clientes..." value={busca} onChange={e => setBusca(e.target.value)} />
         </div>
-        <button className={btnPrimary} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '', tags: '' }); }}>
+        <button className={`${btnPrimary} whitespace-nowrap`} onClick={() => { setShowForm(true); setEditId(null); setForm({ nome: '', telefone: '', email: '', data_nascimento: '', observacoes: '', tags: '' }); }}>
           <FiPlus className="inline mr-1" size={14} /> Novo Cliente
         </button>
       </div>
@@ -71,13 +71,13 @@ export function ClientesTab() {
       {showForm && (
         <div className="p-5 bg-white rounded-2xl shadow-card border border-secondary/30 space-y-3 animate-scaleIn">
           <h4 className="font-heading font-semibold text-sm text-dark">{editId ? 'Editar' : 'Novo'} Cliente</h4>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Nome *</label><input className={inputCls} value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
             <div><label className={labelCls}>Telefone *</label><input className={inputCls} value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
             <div><label className={labelCls}>Email</label><input className={inputCls} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div><label className={labelCls}>Data Nasc.</label><input type="date" className={inputCls} value={form.data_nascimento} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
             <div><label className={labelCls}>Tags (VIP, Recorrente, etc)</label><input className={inputCls} value={form.tags || ''} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Ex: VIP, Chata..." /></div>
           </div>
@@ -87,23 +87,27 @@ export function ClientesTab() {
 
       <div className="grid gap-3">
         {clientes.map(c => (
-          <div key={c.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4 hover:shadow-hover transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-sm">
-              {c.nome?.charAt(0)}
+          <div key={c.id} className="p-3 sm:p-4 bg-white rounded-2xl shadow-card border border-secondary/20 hover:shadow-hover transition-shadow">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {c.nome?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-heading font-semibold text-sm text-dark truncate flex items-center gap-2">
+                  <span>{isBirthday(c) && '🎂 '}{c.nome}</span>
+                  {c.tags && c.tags.split(',').map((t, i) => t.trim() ? <span key={i} className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] uppercase font-bold">{t.trim()}</span> : null)}
+                </p>
+                <p className="text-xs text-dark/40 mt-0.5">{c.telefone} {c.email ? `• ${c.email}` : ''}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-heading font-semibold text-sm text-dark truncate flex items-center gap-2">
-                <span>{isBirthday(c) && '🎂 '}{c.nome}</span>
-                {c.tags && c.tags.split(',').map((t, i) => t.trim() ? <span key={i} className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] uppercase font-bold">{t.trim()}</span> : null)}
-              </p>
-              <p className="text-xs text-dark/40 mt-1">{c.telefone} {c.email ? `• ${c.email}` : ''}</p>
+            <div className="flex items-center gap-3 mt-2 sm:mt-0 sm:ml-14 pl-0 sm:pl-0">
+              <button className="text-accent hover:text-accent-dark text-xs" onClick={() => viewHistory(c.id)}>
+                <FiCalendar className="inline mr-1" size={12} /> Histórico
+              </button>
+              <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(c.id); setForm({ nome: c.nome, telefone: c.telefone, email: c.email || '', data_nascimento: c.data_nascimento || '', observacoes: c.observacoes || '', tags: c.tags || '' }); setShowForm(true); }}>
+                <FiEdit2 size={12} />
+              </button>
             </div>
-            <button className="text-accent hover:text-accent-dark text-xs" onClick={() => viewHistory(c.id)}>
-              <FiCalendar className="inline mr-1" size={12} /> Histórico
-            </button>
-            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(c.id); setForm({ nome: c.nome, telefone: c.telefone, email: c.email || '', data_nascimento: c.data_nascimento || '', observacoes: c.observacoes || '', tags: c.tags || '' }); setShowForm(true); }}>
-              <FiEdit2 size={12} />
-            </button>
           </div>
         ))}
         {!clientes.length && <p className="text-center text-dark/40 text-sm py-8">Nenhum cliente encontrado</p>}
@@ -136,10 +140,10 @@ export function ProcedimentosTab({ defaultSubTab = 'servicos' }) {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         {[['servicos', 'Serviços'], ['profissionais', 'Profissionais'], ['espera', 'Lista de Espera']].map(([key, label]) => (
           <button key={key} onClick={() => setSubTab(key)}
-            className={`px-4 py-2 rounded-2xl text-sm font-medium transition-all ${subTab === key ? 'bg-gradient-to-r from-accent to-accent-dark text-white shadow-card' : 'bg-white text-dark/60 hover:bg-primary border border-secondary/30'}`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-sm font-medium transition-all ${subTab === key ? 'bg-gradient-to-r from-accent to-accent-dark text-white shadow-card' : 'bg-white text-dark/60 hover:bg-primary border border-secondary/30'}`}
           >{label}</button>
         ))}
       </div>
@@ -177,7 +181,7 @@ function ServicosSubTab() {
       </div>
       {showForm && (
         <div className="p-5 bg-white rounded-2xl shadow-card border border-secondary/30 space-y-3 animate-scaleIn">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Nome *</label><input className={inputCls} value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
             <div><label className={labelCls}>Categoria *</label><select className={inputCls} value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}><option value="estetica">Estética</option><option value="unha">Unha</option></select></div>
             <div><label className={labelCls}>Preço (R$) *</label><input type="number" step="0.01" className={inputCls} value={form.preco} onChange={e => setForm(f => ({ ...f, preco: e.target.value }))} /></div>
@@ -264,15 +268,19 @@ function ProfissionaisSubTab() {
       )}
       <div className="grid gap-3">
         {profs.map(p => (
-          <div key={p.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-sm">{p.nome?.charAt(0)}</div>
-            <div className="flex-1">
-              <p className="font-heading font-semibold text-sm">{p.nome}</p>
-              <p className="text-xs text-dark/40">{p.especialidade || 'Sem especialidade'}</p>
-              {p.servicos?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{p.servicos.map(s => (<span key={s.id} className={`text-xs px-2 py-0.5 rounded-full ${s.categoria === 'estetica' ? 'bg-accent/10 text-accent' : 'bg-nail/10 text-nail-dark'}`}>{s.nome}</span>))}</div>}
+          <div key={p.id} className="p-3 sm:p-4 bg-white rounded-2xl shadow-card border border-secondary/20">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-sm shrink-0">{p.nome?.charAt(0)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-heading font-semibold text-sm">{p.nome}</p>
+                <p className="text-xs text-dark/40">{p.especialidade || 'Sem especialidade'}</p>
+                {p.servicos?.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{p.servicos.map(s => (<span key={s.id} className={`text-xs px-2 py-0.5 rounded-full ${s.categoria === 'estetica' ? 'bg-accent/10 text-accent' : 'bg-nail/10 text-nail-dark'}`}>{s.nome}</span>))}</div>}
+              </div>
             </div>
-            <button className="text-accent hover:text-accent-dark text-xs" onClick={() => { setLinkId(p.id); setLinkIds(p.servicos?.map(s => s.id) || []); }}>Vincular Serviços</button>
-            <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(p.id); setForm({ nome: p.nome, especialidade: p.especialidade || '', telefone: p.telefone || '', email: p.email || '' }); setShowForm(true); }}><FiEdit2 size={14} /></button>
+            <div className="flex items-center gap-3 mt-2 pl-0 sm:ml-14">
+              <button className="text-accent hover:text-accent-dark text-xs" onClick={() => { setLinkId(p.id); setLinkIds(p.servicos?.map(s => s.id) || []); }}>Vincular Serviços</button>
+              <button className="text-dark/40 hover:text-dark text-xs" onClick={() => { setEditId(p.id); setForm({ nome: p.nome, especialidade: p.especialidade || '', telefone: p.telefone || '', email: p.email || '' }); setShowForm(true); }}><FiEdit2 size={14} /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -313,22 +321,26 @@ function ListaEsperaSubTab() {
   return (
     <div className="space-y-3">
       {items.map(le => (
-        <div key={le.id} className="p-4 bg-white rounded-2xl shadow-card border border-secondary/20 flex items-center gap-4 hover:shadow-hover transition-shadow">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500"><FiClock size={16} /></div>
-          <div className="flex-1">
-            <p className="font-heading font-semibold text-sm">{le.cliente?.nome || '—'}</p>
-            <p className="text-xs text-dark/40">
-              {le.servico?.nome || 'Qualquer serviço'}
-              {le.data_desejada ? ` • ${new Date(le.data_desejada + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
-              {le.horario_desejado ? ` • ${le.horario_desejado.slice(0, 5)}` : ''}
-            </p>
+        <div key={le.id} className="p-3 sm:p-4 bg-white rounded-2xl shadow-card border border-secondary/20 hover:shadow-hover transition-shadow">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0"><FiClock size={16} /></div>
+            <div className="flex-1 min-w-0">
+              <p className="font-heading font-semibold text-sm">{le.cliente?.nome || '—'}</p>
+              <p className="text-xs text-dark/40">
+                {le.servico?.nome || 'Qualquer serviço'}
+                {le.data_desejada ? ` • ${new Date(le.data_desejada + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
+                {le.horario_desejado ? ` • ${le.horario_desejado.slice(0, 5)}` : ''}
+              </p>
+            </div>
           </div>
-          <button className="flex items-center gap-1 text-accent hover:text-accent-dark text-xs font-medium px-3 py-1.5 bg-accent/10 rounded-xl hover:bg-accent/20 transition-all" onClick={() => handleAgendar(le)}>
-            <FiArrowRight size={12} /> Agendar
-          </button>
-          <button className="text-red-300 hover:text-red-500 text-xs" onClick={async () => { try { await deletarListaEspera(le.id); load(); } catch {} }}>
-            <FiTrash2 size={14} />
-          </button>
+          <div className="flex items-center gap-2 mt-2 pl-11 sm:pl-12">
+            <button className="flex items-center gap-1 text-accent hover:text-accent-dark text-xs font-medium px-3 py-1.5 bg-accent/10 rounded-xl hover:bg-accent/20 transition-all" onClick={() => handleAgendar(le)}>
+              <FiArrowRight size={12} /> Agendar
+            </button>
+            <button className="text-red-300 hover:text-red-500 text-xs" onClick={async () => { try { await deletarListaEspera(le.id); load(); } catch {} }}>
+              <FiTrash2 size={14} />
+            </button>
+          </div>
         </div>
       ))}
       {!items.length && <p className="text-center text-dark/40 text-sm py-8">Lista de espera vazia</p>}

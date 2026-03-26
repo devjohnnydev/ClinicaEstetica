@@ -126,29 +126,29 @@ export default function Agenda() {
   const viewLabels = { dia: 'Dia', semana: 'Semana', mes: 'Mês', profissional: 'Profissionais' };
 
   return (
-    <div className="space-y-4 animate-fadeIn">
+    <div className="space-y-3 sm:space-y-4 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-dark">Agenda</h1>
-          <p className="text-dark/40 text-sm">Gerenciamento completo de horários</p>
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-dark">Agenda</h1>
+          <p className="text-dark/40 text-xs sm:text-sm">Gerenciamento completo de horários</p>
         </div>
       </div>
 
       {/* Dashboard Cards */}
       {dashboard && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {[
             { label: 'Hoje', value: dashboard.total_hoje, color: 'from-accent to-accent-dark' },
             { label: 'Confirmados', value: dashboard.confirmados, color: 'from-emerald-400 to-teal-500' },
             { label: 'Concluídos', value: dashboard.concluidos, color: 'from-teal-400 to-cyan-500' },
             { label: 'Lista Espera', value: dashboard.aguardando_espera, color: 'from-amber-400 to-orange-500', onClick: () => { setProcSubTab('espera'); setTab('procedimentos'); } },
           ].map((c, i) => (
-            <div key={i} onClick={c.onClick} className={`bg-white rounded-2xl shadow-card p-4 border border-secondary/20 hover:shadow-hover transition-shadow relative overflow-hidden ${c.onClick ? 'cursor-pointer' : ''}`}>
+            <div key={i} onClick={c.onClick} className={`bg-white rounded-2xl shadow-card p-3 sm:p-4 border border-secondary/20 hover:shadow-hover transition-shadow relative overflow-hidden ${c.onClick ? 'cursor-pointer' : ''}`}>
               {c.onClick && <div className="absolute inset-y-0 left-0 w-1 bg-amber-400 rounded-l-2xl" />}
               <div className={c.onClick ? 'pl-1' : ''}>
-                <p className="text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p>
-                <p className="text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p>
+                <p className="text-[10px] sm:text-[11px] text-dark/40 font-medium uppercase tracking-wide">{c.label}</p>
+                <p className="text-xl sm:text-2xl font-heading font-bold text-dark mt-0.5">{c.value}</p>
               </div>
             </div>
           ))}
@@ -183,11 +183,11 @@ export default function Agenda() {
       <div className="flex gap-1 bg-soft p-1 rounded-2xl">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
               tab === t.key ? 'bg-white text-accent shadow-card' : 'text-dark/40 hover:text-dark'
             }`}>
-            <t.icon size={15} />
-            <span className="hidden sm:inline">{t.label}</span>
+            <t.icon size={15} className="shrink-0" />
+            <span className="truncate">{t.label}</span>
           </button>
         ))}
       </div>
@@ -195,31 +195,32 @@ export default function Agenda() {
       {tab === 'agenda' && (
         <div className="space-y-3">
           {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-2 sm:gap-3">
+            {/* Row 1: View switcher + Nav + Zoom */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {/* View switcher */}
               <div className="flex bg-white rounded-xl shadow-card border border-secondary/30 overflow-hidden">
                 {VIEWS.map(v => (
                   <button key={v} onClick={() => setView(v)}
-                    className={`px-3 py-2 text-[11px] font-semibold transition-all ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-semibold transition-all ${
                       view === v ? 'bg-gradient-to-r from-accent to-accent-dark text-white' : 'text-dark/40 hover:text-dark hover:bg-primary/50'
                     }`}>{viewLabels[v]}</button>
                 ))}
               </div>
               {/* Nav */}
-              <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary">
-                <FiChevronLeft size={15} />
+              <button onClick={() => navigate(-1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary shrink-0">
+                <FiChevronLeft size={14} />
               </button>
-              <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 rounded-xl bg-white shadow-card border border-secondary/30 text-xs font-semibold hover:bg-primary">Hoje</button>
-              <button onClick={() => navigate(1)} className="w-8 h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary">
-                <FiChevronRight size={15} />
+              <button onClick={() => setCurrentDate(new Date())} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-white shadow-card border border-secondary/30 text-[11px] sm:text-xs font-semibold hover:bg-primary">Hoje</button>
+              <button onClick={() => navigate(1)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white shadow-card border border-secondary/30 flex items-center justify-center hover:bg-primary shrink-0">
+                <FiChevronRight size={14} />
               </button>
               {/* Zoom */}
               {(view === 'dia' || view === 'semana' || view === 'profissional') && (
                 <div className="flex bg-white rounded-xl shadow-card border border-secondary/30 overflow-hidden">
                   {ZOOM_OPTIONS.map(z => (
                     <button key={z.value} onClick={() => setZoom(z.value)}
-                      className={`px-2.5 py-2 text-[10px] font-semibold transition-all ${
+                      className={`px-2 sm:px-2.5 py-1.5 sm:py-2 text-[10px] font-semibold transition-all ${
                         zoom === z.value ? 'bg-accent/10 text-accent' : 'text-dark/30 hover:text-dark'
                       }`}>{z.label}</button>
                   ))}
@@ -227,23 +228,25 @@ export default function Agenda() {
               )}
             </div>
 
-            <span className="font-heading font-semibold text-dark text-sm capitalize">{dateLabel()}</span>
+            {/* Row 2: Date label */}
+            <span className="font-heading font-semibold text-dark text-xs sm:text-sm capitalize">{dateLabel()}</span>
 
-            <div className="sm:ml-auto flex flex-wrap gap-2">
+            {/* Row 3: Actions */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {view !== 'profissional' && (
-                <select className="px-3 py-2 rounded-xl border border-secondary/30 bg-white text-xs" value={filterProf} onChange={e => setFilterProf(e.target.value)}>
+                <select className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-secondary/30 bg-white text-[11px] sm:text-xs flex-1 min-w-0 sm:flex-none" value={filterProf} onChange={e => setFilterProf(e.target.value)}>
                   <option value="">Todos profissionais</option>
                   {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               )}
-              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => { setEditBloqueio(null); setShowBloqueio(true); }}>
-                <FiLock size={13} /> Bloquear
+              <button className="px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-[11px] sm:text-xs hover:bg-primary flex items-center gap-1" onClick={() => { setEditBloqueio(null); setShowBloqueio(true); }}>
+                <FiLock size={12} /> Bloquear
               </button>
-              <button className="px-3 py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowEspera(true)}>
-                <FiClock size={13} /> Espera
+              <button className="px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-secondary/30 shadow-card rounded-xl text-[11px] sm:text-xs hover:bg-primary flex items-center gap-1" onClick={() => setShowEspera(true)}>
+                <FiClock size={12} /> Espera
               </button>
-              <button className="px-3 py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-xl text-xs font-semibold shadow-card hover:shadow-hover flex items-center gap-1" onClick={() => openNew()}>
-                <FiPlus size={14} /> Agendar
+              <button className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-accent to-accent-dark text-white rounded-xl text-[11px] sm:text-xs font-semibold shadow-card hover:shadow-hover flex items-center gap-1" onClick={() => openNew()}>
+                <FiPlus size={13} /> Agendar
               </button>
             </div>
           </div>
@@ -367,13 +370,13 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-hidden">
-      <div className="overflow-y-auto max-h-[calc(100vh-320px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+      <div className="overflow-y-auto max-h-[calc(100vh-380px)] sm:max-h-[calc(100vh-320px)]" style={{ position: 'relative', minHeight: gridHeight }}>
         {slots.map((s, i) => (
           <div key={i}
             className="flex border-b border-secondary/50 cursor-pointer hover:bg-primary/20 transition-colors"
             style={{ height: slotH }}
             onClick={() => onClickSlot(s.label)}>
-            <div className="w-14 sm:w-16 shrink-0 px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">
+            <div className="w-12 sm:w-16 shrink-0 px-1 sm:px-2 pt-1.5 text-[10px] sm:text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">
               {s.m === 0 ? s.label : ''}
             </div>
             <div className="flex-1 bg-white/50" />
@@ -386,8 +389,8 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
           const h = Math.max((timeToMin(b.hora_fim) - timeToMin(b.hora_inicio)) * pxPerMin, 20);
           return (
             <div key={`b-${b.id}`}
-              className="absolute right-2 bg-gray-100/90 border border-dashed border-gray-300 rounded-xl flex items-start p-2 pointer-events-auto cursor-pointer z-[2] hover:bg-gray-200/90 transition-colors"
-              style={{ top, height: h, left: '3.5rem' }}
+              className="absolute right-2 bg-gray-100/90 border border-dashed border-gray-300 rounded-xl flex items-start p-1.5 sm:p-2 pointer-events-auto cursor-pointer z-[2] hover:bg-gray-200/90 transition-colors"
+              style={{ top, height: h, left: '3rem' }}
               onClick={(e) => { e.stopPropagation(); onClickBlock && onClickBlock(b); }}>
               <FiLock size={12} className="text-gray-400 mr-1.5 mt-0.5 shrink-0" />
               <div>
@@ -404,7 +407,7 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
           const h = Math.max((timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio)) * pxPerMin, 36);
           return (
             <div key={ag.id} className="absolute z-[2]"
-              style={{ top: top + 1, height: h - 2, left: 'calc(3.5rem + 4px)', right: '8px' }}>
+              style={{ top: top + 1, height: h - 2, left: 'calc(3rem + 4px)', right: '4px' }}>
               <EventCard ag={ag} onClick={onClickEvent} />
             </div>
           );
@@ -427,7 +430,7 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
-      <div style={{ minWidth: 700 }}>
+      <div style={{ minWidth: 600 }}>
         <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white">
           <div className="border-r border-secondary/50 bg-secondary/10" />
           {days.map((d, i) => {
@@ -440,7 +443,7 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
             );
           })}
         </div>
-        <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+        <div className="overflow-y-auto max-h-[calc(100vh-400px)] sm:max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
             <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50" style={{ height: slotH }}>
               <div className="px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
@@ -485,7 +488,7 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
 
   return (
     <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
-      <div style={{ minWidth: Math.max(600, colCount * 200) }}>
+      <div style={{ minWidth: Math.max(400, colCount * 160) }}>
         {/* Header */}
         <div className={`grid border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white`}
           style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
@@ -493,18 +496,18 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
             <FiColumns size={16} className="text-dark/50" />
           </div>
           {profs.map(p => (
-            <div key={p.id} className="text-center py-3 border-r border-secondary/50 px-2 bg-secondary/5">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-sm flex items-center justify-center mx-auto mb-1 shadow-sm">
+            <div key={p.id} className="text-center py-2 sm:py-3 border-r border-secondary/50 px-1 sm:px-2 bg-secondary/5">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-accent to-accent-dark text-white font-bold text-[11px] sm:text-sm flex items-center justify-center mx-auto mb-0.5 sm:mb-1 shadow-sm">
                 {p.nome?.charAt(0)}
               </div>
-              <p className="text-xs font-semibold text-dark truncate">{p.nome}</p>
-              {p.especialidade && <p className="text-[10px] text-dark/60 truncate">{p.especialidade}</p>}
+              <p className="text-[10px] sm:text-xs font-semibold text-dark truncate">{p.nome}</p>
+              {p.especialidade && <p className="text-[9px] sm:text-[10px] text-dark/60 truncate">{p.especialidade}</p>}
             </div>
           ))}
         </div>
 
         {/* Grid body */}
-        <div className="overflow-y-auto max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
+        <div className="overflow-y-auto max-h-[calc(100vh-420px)] sm:max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
             <div key={i} className="border-b border-secondary/50"
               style={{ height: slotH, display: 'grid', gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
@@ -582,14 +585,14 @@ function MonthView({ date, agendamentos, onClickDay, onClickEvent, dashboard }) 
           <div key={d} className="text-center py-2 text-[10px] font-semibold text-dark/35 uppercase tracking-wider border-b border-primary/40">{d}</div>
         ))}
         {cells.map((day, i) => {
-          if (!day) return <div key={i} className="border-r border-b border-primary/25 min-h-[90px] bg-primary/10" />;
+          if (!day) return <div key={i} className="border-r border-b border-primary/25 min-h-[60px] sm:min-h-[90px] bg-primary/10" />;
           const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const dayAgs = agendamentos.filter(a => a.data === ds && a.status !== 'cancelado');
           const isToday = ds === fmtDate(new Date());
           const isBday = birthdayDays.has(day);
           return (
             <div key={i}
-              className={`border-r border-b border-primary/25 min-h-[90px] p-1.5 cursor-pointer hover:bg-primary/20 transition-colors ${isToday ? 'bg-accent/5' : ''}`}
+              className={`border-r border-b border-primary/25 min-h-[60px] sm:min-h-[90px] p-1 sm:p-1.5 cursor-pointer hover:bg-primary/20 transition-colors ${isToday ? 'bg-accent/5' : ''}`}
               onClick={() => onClickDay(ds)}>
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-xs font-semibold ${isToday ? 'bg-accent text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-dark/50'}`}>{day}</span>

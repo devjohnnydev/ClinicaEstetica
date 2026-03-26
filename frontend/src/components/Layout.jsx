@@ -22,6 +22,10 @@ export default function Layout() {
     navigate('/login');
   };
 
+  // On mobile, sidebar is always expanded (shows labels) when open
+  // On desktop, sidebar can be collapsed (icons only)
+  const desktopWidth = sidebarCollapsed ? 'w-20' : 'w-72';
+
   return (
     <div className="min-h-screen flex bg-soft font-body">
       {/* Mobile overlay */}
@@ -29,32 +33,30 @@ export default function Layout() {
         <div className="fixed inset-0 bg-black/20 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — always fixed on all breakpoints */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        ${sidebarCollapsed ? 'w-20' : 'w-72'} bg-white shadow-elegant
+        fixed inset-y-0 left-0 z-40
+        ${desktopWidth} bg-white shadow-elegant
         transform transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col relative
+        max-lg:w-72
       `}>
         {/* Logo */}
-        <div className={`h-20 flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between px-6'} border-b border-primary transition-all`}>
+        <div className={`h-20 flex items-center ${sidebarCollapsed ? 'lg:justify-center' : 'justify-between px-6'} max-lg:justify-between max-lg:px-6 border-b border-primary transition-all`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center shrink-0">
               <span className="text-white font-display text-lg font-bold">CE</span>
             </div>
-            {!sidebarCollapsed && (
-              <div className="whitespace-nowrap overflow-hidden">
-                <h1 className="font-display text-lg font-semibold text-dark leading-tight">Clínica</h1>
-                <p className="text-xs text-accent font-heading">Estética</p>
-              </div>
-            )}
+            {/* On mobile: always show. On desktop: hide when collapsed */}
+            <div className={`whitespace-nowrap overflow-hidden ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+              <h1 className="font-display text-lg font-semibold text-dark leading-tight">Clínica</h1>
+              <p className="text-xs text-accent font-heading">Estética</p>
+            </div>
           </div>
-          {!sidebarCollapsed && (
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-dark/50 hover:text-dark">
-              <FiX size={20} />
-            </button>
-          )}
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-dark/50 hover:text-dark">
+            <FiX size={20} />
+          </button>
         </div>
 
         {/* Desktop Collapse Button */}
@@ -65,8 +67,8 @@ export default function Layout() {
           {sidebarCollapsed ? <FiChevronRight size={14} /> : <FiChevronLeft size={14} />}
         </button>
 
-        {/* Nav */}
-        <nav className={`flex-1 ${sidebarCollapsed ? 'py-6 px-3' : 'py-6 px-4'} space-y-1 overflow-y-auto overflow-x-hidden`}>
+        {/* Nav — on mobile always show labels */}
+        <nav className={`flex-1 py-6 px-4 ${sidebarCollapsed ? 'lg:px-3' : ''} space-y-1 overflow-y-auto overflow-x-hidden`}>
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
@@ -81,53 +83,54 @@ export default function Layout() {
               `}
             >
               <Icon size={20} className="shrink-0" />
-              {!sidebarCollapsed && <span className="whitespace-nowrap">{label}</span>}
+              {/* On mobile: always show label. On desktop: hide when collapsed */}
+              <span className={`whitespace-nowrap ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* User section */}
+        {/* User section — on mobile always show full info + logout */}
         <div className="p-4 border-t border-primary">
-          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0 px-0' : 'gap-3 px-4'} py-3 transition-all`}>
+          <div className={`flex items-center gap-3 px-4 ${sidebarCollapsed ? 'lg:justify-center lg:gap-0 lg:px-0' : ''} py-3 transition-all`}>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center shrink-0">
               <span className="text-white text-sm font-bold">
                 {user?.nome?.charAt(0) || 'A'}
               </span>
             </div>
-            {!sidebarCollapsed && (
-              <>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-dark truncate">{user?.nome}</p>
-                  <p className="text-xs text-dark/40 truncate">{user?.email}</p>
-                </div>
-                <button onClick={handleLogout} className="text-dark/30 hover:text-red-400 transition-colors shrink-0" title="Sair">
-                  <FiLogOut size={18} />
-                </button>
-              </>
-            )}
+            {/* On mobile: always show. On desktop: hide when collapsed */}
+            <div className={`${sidebarCollapsed ? 'lg:hidden' : ''} flex-1 min-w-0 flex items-center gap-2`}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-dark truncate">{user?.nome}</p>
+                <p className="text-xs text-dark/40 truncate">{user?.email}</p>
+              </div>
+              <button onClick={handleLogout} className="text-dark/30 hover:text-red-400 transition-colors shrink-0" title="Sair">
+                <FiLogOut size={18} />
+              </button>
+            </div>
           </div>
+          {/* Desktop collapsed: show logout icon below avatar */}
           {sidebarCollapsed && (
-             <button onClick={handleLogout} className="mt-2 w-full flex justify-center text-dark/30 hover:text-red-400 transition-colors" title="Sair">
+             <button onClick={handleLogout} className="mt-2 w-full hidden lg:flex justify-center text-dark/30 hover:text-red-400 transition-colors" title="Sair">
                 <FiLogOut size={18} />
              </button>
           )}
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      {/* Main content — offset by sidebar width on desktop only */}
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         {/* Topbar */}
-        <header className="h-20 bg-white/80 backdrop-blur-sm border-b border-primary/50 flex items-center px-6 sticky top-0 z-20">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-4 text-dark/60 hover:text-dark">
+        <header className="h-16 sm:h-20 bg-white/80 backdrop-blur-sm border-b border-primary/50 flex items-center px-4 sm:px-6 sticky top-0 z-20">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-3 text-dark/60 hover:text-dark">
             <FiMenu size={24} />
           </button>
           <div className="flex-1">
-            <h2 className="font-heading text-lg font-semibold text-dark">Clínica de Estética</h2>
+            <h2 className="font-heading text-base sm:text-lg font-semibold text-dark">Clínica de Estética</h2>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8">
           <Outlet />
         </main>
       </div>
