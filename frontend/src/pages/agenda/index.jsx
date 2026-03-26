@@ -429,9 +429,10 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
   const gridHeight = slots.length * slotH;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
-      <div style={{ minWidth: 600 }}>
-        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white">
+    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-hidden">
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ minWidth: 560 }}>
+        <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white">
           <div className="border-r border-secondary/50 bg-secondary/10" />
           {days.map((d, i) => {
             const isToday = fmtDate(d) === fmtDate(new Date());
@@ -445,8 +446,8 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
         </div>
         <div className="overflow-y-auto max-h-[calc(100vh-400px)] sm:max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
-            <div key={i} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-secondary/50" style={{ height: slotH }}>
-              <div className="px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
+            <div key={i} className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-secondary/50" style={{ height: slotH }}>
+              <div className="px-1 pt-1.5 text-[10px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
               {days.map((d, di) => (
                 <div key={di} className={`border-r border-secondary/40 hover:bg-primary/20 cursor-pointer transition-colors ${fmtDate(d) === fmtDate(new Date()) ? 'bg-accent/[0.03]' : 'bg-white/50'}`}
                   onClick={() => onClickSlot(fmtDate(d), s.label)} />
@@ -460,13 +461,14 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
               const h = Math.max((timeToMin(ag.hora_fim) - timeToMin(ag.hora_inicio)) * pxPerMin, 24);
               return (
                 <div key={ag.id} className="absolute z-[2] px-0.5"
-                  style={{ top: top + 1, height: h - 2, left: `calc(56px + ${di} * ((100% - 56px) / 7) + 2px)`, width: `calc((100% - 56px) / 7 - 4px)` }}>
+                  style={{ top: top + 1, height: h - 2, left: `calc(48px + ${di} * ((100% - 48px) / 7) + 2px)`, width: `calc((100% - 48px) / 7 - 4px)` }}>
                   <EventCard ag={ag} onClick={onClickEvent} compact={h < 40} />
                 </div>
               );
             });
           })}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -487,13 +489,14 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
   if (profs.length === 0) return <div className="text-center py-12 text-dark/40">Nenhum profissional cadastrado</div>;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-x-auto">
-      <div style={{ minWidth: Math.max(400, colCount * 160) }}>
+    <div className="bg-white rounded-2xl shadow-card border border-secondary/20 overflow-hidden">
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ minWidth: Math.max(360, colCount * 140) }}>
         {/* Header */}
         <div className={`grid border-b border-secondary/50 sticky top-0 z-10 shadow-sm bg-white`}
-          style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
+          style={{ gridTemplateColumns: `48px repeat(${colCount}, 1fr)` }}>
           <div className="border-r border-secondary/50 flex items-center justify-center py-2 bg-secondary/10">
-            <FiColumns size={16} className="text-dark/50" />
+            <FiColumns size={14} className="text-dark/50" />
           </div>
           {profs.map(p => (
             <div key={p.id} className="text-center py-2 sm:py-3 border-r border-secondary/50 px-1 sm:px-2 bg-secondary/5">
@@ -510,8 +513,8 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
         <div className="overflow-y-auto max-h-[calc(100vh-420px)] sm:max-h-[calc(100vh-360px)]" style={{ position: 'relative', minHeight: gridHeight }}>
           {slots.map((s, i) => (
             <div key={i} className="border-b border-secondary/50"
-              style={{ height: slotH, display: 'grid', gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
-              <div className="px-2 pt-1.5 text-[11px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
+              style={{ height: slotH, display: 'grid', gridTemplateColumns: `48px repeat(${colCount}, 1fr)` }}>
+              <div className="px-1 pt-1.5 text-[10px] text-dark/70 font-medium bg-secondary/10 border-r border-secondary/50 select-none">{s.m === 0 ? s.label : ''}</div>
               {profs.map((p, pi) => (
                 <div key={pi} className="border-r border-secondary/40 hover:bg-primary/20 cursor-pointer transition-colors bg-white/50"
                   onClick={() => onClickSlot(s.label)} />
@@ -534,8 +537,8 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
                       className="absolute bg-gray-100/80 border border-dashed border-gray-300 rounded-lg flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-gray-200/90 transition-colors z-[2]"
                       style={{
                         top, height: h,
-                        left: `calc(56px + ${pi} * ((100% - 56px) / ${colCount}) + 2px)`,
-                        width: `calc((100% - 56px) / ${colCount} - 4px)`,
+                        left: `calc(48px + ${pi} * ((100% - 48px) / ${colCount}) + 2px)`,
+                        width: `calc((100% - 48px) / ${colCount} - 4px)`,
                       }}
                       onClick={(e) => { e.stopPropagation(); onClickBlock && onClickBlock(b); }}>
                       <FiLock size={10} className="text-gray-400" />
@@ -550,8 +553,8 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
                       className="absolute z-[2] px-0.5"
                       style={{
                         top: top + 1, height: h - 2,
-                        left: `calc(56px + ${pi} * ((100% - 56px) / ${colCount}) + 2px)`,
-                        width: `calc((100% - 56px) / ${colCount} - 4px)`,
+                        left: `calc(48px + ${pi} * ((100% - 48px) / ${colCount}) + 2px)`,
+                        width: `calc((100% - 48px) / ${colCount} - 4px)`,
                       }}>
                       <EventCard ag={ag} onClick={onClickEvent} compact={h < 40} />
                     </div>
@@ -561,6 +564,7 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );
