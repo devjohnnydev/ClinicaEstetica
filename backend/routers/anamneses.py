@@ -83,7 +83,7 @@ def criar_anamnese(
         db.add(db_resp)
 
     # Save initial signature
-    sig_path = save_base64_image(data.assinatura_base64, "assinaturas", "sig_inicial_")
+    sig_path = save_base64_image(data.assinatura_base64, "assinaturas", "sig_inicial_", db=db)
     assinatura = Assinatura(
         anamnese_id=anamnese.id,
         tipo="inicial",
@@ -150,7 +150,7 @@ def finalizar_anamnese(
     if existing_final:
         db.delete(existing_final)
 
-    sig_path = save_base64_image(data.assinatura_final_base64, "assinaturas", "sig_final_")
+    sig_path = save_base64_image(data.assinatura_final_base64, "assinaturas", "sig_final_", db=db)
     assinatura = Assinatura(
         anamnese_id=anamnese.id,
         tipo="final",
@@ -198,7 +198,7 @@ def salvar_progresso(
         if existing_final:
             db.delete(existing_final)
 
-        sig_path = save_base64_image(data.assinatura_final_base64, "assinaturas", "sig_rascunho_")
+        sig_path = save_base64_image(data.assinatura_final_base64, "assinaturas", "sig_rascunho_", db=db)
         assinatura = Assinatura(
             anamnese_id=anamnese.id,
             tipo="final",
@@ -226,7 +226,7 @@ async def upload_anexo(
         raise HTTPException(status_code=404, detail="Anamnese não encontrada")
 
     content = await arquivo.read()
-    file_path = save_uploaded_file(content, "anexos", arquivo.filename)
+    file_path = save_uploaded_file(content, "anexos", arquivo.filename, db=db)
 
     anexo = Anexo(
         anamnese_id=anamnese_id,

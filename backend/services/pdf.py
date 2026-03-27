@@ -13,6 +13,8 @@ from reportlab.platypus import (
     Image as RLImage, HRFlowable, KeepTogether,
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from sqlalchemy.orm import Session
+from models.db_file import DbFile
 from config import settings
 
 # ─── Clinic Brand Colors ───
@@ -182,6 +184,23 @@ def _base64_to_temp_file(base64_str):
         return None
 
 
+def _get_image_flowable(filepath: str, db: Session, width, height, kind='proportional'):
+    """Fetch image from DB (or fallback to disk) and return an RLImage flowable, or None if not found."""
+    if not filepath:
+        return None
+        
+    db_file = db.query(DbFile).filter(DbFile.file_path == filepath).first()
+    if db_file:
+        img_stream = io.BytesIO(db_file.file_data)
+        return RLImage(img_stream, width=width, height=height, kind=kind)
+        
+    disk_path = os.path.join(settings.UPLOAD_DIR, filepath)
+    if os.path.exists(disk_path):
+        return RLImage(disk_path, width=width, height=height, kind=kind)
+        
+    return None
+
+
 def generate_anamnese_pdf(anamnese, db) -> bytes:
     """Generate a premium styled PDF for a completed anamnesis."""
     buffer = io.BytesIO()
@@ -303,10 +322,9 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
         tipo_label = "Assinatura Inicial do Paciente" if assinatura.tipo == "inicial" else "Assinatura Final — Confirmação"
         elements.append(Spacer(1, 2 * mm))
 
-        sig_path = os.path.join(settings.UPLOAD_DIR, assinatura.imagem_path)
-        if os.path.exists(sig_path):
+        sig_img = _get_image_flowable(assinatura.imagem_path, db, width=8 * cm, height=2.5 * cm)
+        if sig_img:
             try:
-                sig_img = RLImage(sig_path, width=8 * cm, height=2.5 * cm, kind='proportional')
                 # Create a styled signature box
                 sig_table_data = [
                     [sig_img],
@@ -325,7 +343,7 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
                 ]))
                 elements.append(sig_table)
             except Exception:
-                elements.append(Paragraph(f"{tipo_label}: [Assinatura não disponível]", styles['FieldValue']))
+                elements.append(Paragraph(f"{tipo_label}: [Erro ao carregar assinatura]", styles['FieldValue']))
         else:
             elements.append(Paragraph(f"{tipo_label}: [Assinatura não disponível]", styles['FieldValue']))
         elements.append(Spacer(1, 4 * mm))
@@ -350,10 +368,9 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
             elements.append(Paragraph(titulo, styles['FieldLabel']))
             elements.append(Spacer(1, 2 * mm))
             for anexo in grupo:
-                anexo_path = os.path.join(settings.UPLOAD_DIR, anexo.arquivo_path)
-                if os.path.exists(anexo_path):
+                img = _get_image_flowable(anexo.arquivo_path, db, width=10 * cm, height=7 * cm)
+                if img:
                     try:
-                        img = RLImage(anexo_path, width=10 * cm, height=7 * cm, kind='proportional')
                         # Wrap in a styled box
                         img_table = Table([[img]], colWidths=[12 * cm])
                         img_table.setStyle(TableStyle([
@@ -365,7 +382,10 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
                         ]))
                         elements.append(img_table)
                     except Exception:
-                        elements.append(Paragraph("[Imagem não disponível]", styles['FieldValue']))
+                        elements.append(Paragraph("[Erro ao carregar imagem]", styles['FieldValue']))
+                else:
+                    elements.append(Paragraph("[Imagem não disponível no banco]", styles['FieldValue']))
+                
                 if anexo.descricao and anexo.descricao.strip().lower() not in ["", "foto da bancada", "antes/depois", "antes / depois"]:
                     elements.append(Paragraph(anexo.descricao, styles['FieldValue']))
                 elements.append(Spacer(1, 3 * mm))

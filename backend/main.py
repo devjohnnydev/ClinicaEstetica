@@ -39,9 +39,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve uploaded files
+# Serve uploaded files from DB (with fallback to disk)
+from fastapi.responses import Response, FileResponse
+from fastapi import HTTPException
+from models.db_file import DbFile
+
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+# Removed StaticFiles mount to handle DB files via custom route below
 
 # Include routers
 app.include_router(auth.router)
@@ -49,6 +53,20 @@ app.include_router(pacientes.router)
 app.include_router(modelos.router)
 app.include_router(anamneses.router)
 app.include_router(agenda_router.router)
+
+
+@app.get("/uploads/{subdir}/{filename}")
+def get_upload_file(subdir: str, filename: str, db: Session = Depends(get_db)):
+    file_path = f"{subdir}/{filename}"
+    db_file = db.query(DbFile).filter(DbFile.file_path == file_path).first()
+    if db_file:
+        return Response(content=db_file.file_data, media_type=db_file.content_type)
+        
+    # Fallback for old files on disk (local dev mostly)
+    disk_path = os.path.join(settings.UPLOAD_DIR, subdir, filename)
+    if os.path.exists(disk_path):
+        return FileResponse(disk_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 # PDF Download endpoint
