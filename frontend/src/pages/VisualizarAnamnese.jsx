@@ -20,13 +20,15 @@ export default function VisualizarAnamnese() {
 
   useEffect(() => {
     if (anamnese?.anexos) {
-      const initialDesc = {};
-      anamnese.anexos.forEach(a => {
-        if (a.tipo === 'adicionais') {
-          initialDesc[a.id] = a.descricao || '';
-        }
+      setAnexosDescricoes(prev => {
+        const newDesc = {};
+        anamnese.anexos.forEach(a => {
+          if (a.tipo === 'adicionais') {
+            newDesc[a.id] = prev[a.id] !== undefined ? prev[a.id] : (a.descricao || '');
+          }
+        });
+        return newDesc;
       });
-      setAnexosDescricoes(initialDesc);
     }
   }, [anamnese]);
 
@@ -34,19 +36,18 @@ export default function VisualizarAnamnese() {
     loadAnamnese();
   }, [id]);
 
-  const loadAnamnese = async () => {
-    setLoading(true);
+  const loadAnamnese = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await getAnamnese(id);
       setAnamnese(res.data);
-      // Pre-populate observations if they exist
-      if (res.data.observacoes) {
+      if (res.data.observacoes && !observacoes) {
         setObservacoes(res.data.observacoes);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
@@ -86,7 +87,7 @@ export default function VisualizarAnamnese() {
         formData.append('tipo', tipo);
         formData.append('descricao', '');
         await uploadAnexo(id, formData);
-        await loadAnamnese();
+        await loadAnamnese(false);
       } catch (err) {
         console.error(err);
         alert('Erro ao enviar foto');
@@ -112,7 +113,7 @@ export default function VisualizarAnamnese() {
         formData.append('tipo', tipo);
         formData.append('descricao', '');
         await uploadAnexo(id, formData);
-        await loadAnamnese();
+        await loadAnamnese(false);
       } catch (err) {
         console.error(err);
         alert('Erro ao capturar foto');
@@ -127,7 +128,7 @@ export default function VisualizarAnamnese() {
     if (!confirm('Remover este anexo?')) return;
     try {
       await deletarAnexo(id, anexoId);
-      await loadAnamnese();
+      await loadAnamnese(false);
     } catch (err) {
       console.error(err);
     }
@@ -172,7 +173,7 @@ export default function VisualizarAnamnese() {
         }))
       };
       await salvarProgresso(id, payload);
-      await loadAnamnese();
+      await loadAnamnese(false);
       alert('Progresso salvo com sucesso!');
     } catch (err) {
       console.error(err);
