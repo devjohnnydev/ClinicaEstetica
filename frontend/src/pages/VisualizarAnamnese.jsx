@@ -16,6 +16,19 @@ export default function VisualizarAnamnese() {
   const [assinaturaFinal, setAssinaturaFinal] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [anexosDescricoes, setAnexosDescricoes] = useState({});
+
+  useEffect(() => {
+    if (anamnese?.anexos) {
+      const initialDesc = {};
+      anamnese.anexos.forEach(a => {
+        if (a.tipo === 'adicionais') {
+          initialDesc[a.id] = a.descricao || '';
+        }
+      });
+      setAnexosDescricoes(initialDesc);
+    }
+  }, [anamnese]);
 
   useEffect(() => {
     loadAnamnese();
@@ -108,6 +121,10 @@ export default function VisualizarAnamnese() {
       await finalizarAnamnese(id, {
         observacoes: observacoes || null,
         assinatura_final_base64: assinaturaFinal,
+        anexos_descricoes: Object.entries(anexosDescricoes).map(([anexoId, desc]) => ({
+          anexo_id: parseInt(anexoId),
+          descricao: desc
+        }))
       });
       if (anamnese?.paciente_id) {
         navigate(`/pacientes/${anamnese.paciente_id}`);
@@ -127,10 +144,11 @@ export default function VisualizarAnamnese() {
     try {
       const payload = {
         observacoes: observacoes || null,
+        anexos_descricoes: Object.entries(anexosDescricoes).map(([anexoId, desc]) => ({
+          anexo_id: parseInt(anexoId),
+          descricao: desc
+        }))
       };
-      if (assinaturaFinal) {
-        payload.assinatura_final_base64 = assinaturaFinal;
-      }
       await salvarProgresso(id, payload);
       await loadAnamnese();
       alert('Progresso salvo com sucesso!');
@@ -429,6 +447,61 @@ export default function VisualizarAnamnese() {
                     </button>
                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1">
                       <span className="text-white text-xs">Antes/Depois</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ─── FOTOS ADICIONAIS ─── */}
+          <div className="bg-white rounded-3xl p-5 shadow-card">
+            <h3 className="font-heading font-semibold text-dark mb-2 flex items-center gap-2">
+              <FiImage className="text-accent" size={18} />
+              Fotos Adicionais
+            </h3>
+            <p className="text-dark/40 text-xs mb-4">Adicione outras fotos relevantes e escreva uma legenda (salve a legenda em Salvar Progresso)</p>
+
+            <div className="flex gap-3 mb-4">
+              <button
+                onClick={() => handleUploadFoto('adicionais')}
+                disabled={uploading}
+                className="flex-1 p-4 rounded-2xl border-2 border-dashed border-secondary/50 hover:border-accent/50 text-center transition-all hover:bg-accent/5"
+              >
+                <FiUpload className="mx-auto text-accent/50 mb-1.5" size={20} />
+                <p className="text-xs font-medium text-dark/60">Enviar Foto</p>
+              </button>
+
+              <button
+                onClick={() => handleCaptureFoto('adicionais')}
+                disabled={uploading}
+                className="flex-1 p-4 rounded-2xl border-2 border-dashed border-accent/30 hover:border-accent/50 text-center transition-all hover:bg-accent/5 bg-accent/5"
+              >
+                <FiCamera className="mx-auto text-accent mb-1.5" size={20} />
+                <p className="text-xs font-medium text-dark/60">Tirar Foto</p>
+              </button>
+            </div>
+
+            {/* Adicionais photos */}
+            {anamnese.anexos?.filter(a => a.tipo === 'adicionais').length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {anamnese.anexos.filter(a => a.tipo === 'adicionais').map(a => (
+                  <div key={a.id} className="relative rounded-xl overflow-hidden border border-secondary/30">
+                    <img src={`${UPLOAD_URL}/${a.arquivo_path}`} alt="Foto Adicional" className="w-full h-32 object-cover" />
+                    <button
+                      onClick={() => handleDeleteAnexo(a.id)}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-[&:hover]:opacity-100 transition-opacity z-10 hover:bg-red-600 shadow-sm"
+                    >
+                      <FiTrash2 size={12} />
+                    </button>
+                    <div className="p-3 bg-white border-t border-secondary/30">
+                      <input
+                        type="text"
+                        placeholder="Escreva uma legenda..."
+                        value={anexosDescricoes[a.id] ?? a.descricao ?? ''}
+                        onChange={(e) => setAnexosDescricoes(prev => ({ ...prev, [a.id]: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-secondary/50 bg-soft/30 focus:bg-white focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-all text-dark placeholder:text-dark/30"
+                      />
                     </div>
                   </div>
                 ))}

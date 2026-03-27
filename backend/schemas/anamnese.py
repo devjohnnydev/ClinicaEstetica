@@ -47,14 +47,21 @@ class AnamneseCreate(BaseModel):
     assinatura_base64: str  # Base64 encoded signature
 
 
+class AnexoDescricaoUpdate(BaseModel):
+    anexo_id: int
+    descricao: str
+
+
 class AnamneseFinalizarRequest(BaseModel):
     observacoes: Optional[str] = None
     assinatura_final_base64: str  # Base64 encoded final signature
+    anexos_descricoes: Optional[List[AnexoDescricaoUpdate]] = None
 
 
 class AnameseSalvarProgressoRequest(BaseModel):
     observacoes: Optional[str] = None
     assinatura_final_base64: Optional[str] = None  # Optional — save signature without finalizing
+    anexos_descricoes: Optional[List[AnexoDescricaoUpdate]] = None
 
 
 class AnamneseListResponse(BaseModel):

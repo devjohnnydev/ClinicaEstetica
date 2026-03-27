@@ -134,7 +134,22 @@ def finalizar_anamnese(
     anamnese.status = "finalizada"
     anamnese.finalizada_at = get_brazil_time()
 
+    # Update anexos descricoes if provided
+    if data.anexos_descricoes:
+        for ad in data.anexos_descricoes:
+            anexo = next((a for a in anamnese.anexos if a.id == ad.anexo_id), None)
+            if anexo:
+                anexo.descricao = ad.descricao
+
     # Save final signature
+    # Remove existing final signature if any to prevent duplicates
+    existing_final = db.query(Assinatura).filter(
+        Assinatura.anamnese_id == anamnese_id,
+        Assinatura.tipo == "final",
+    ).first()
+    if existing_final:
+        db.delete(existing_final)
+
     sig_path = save_base64_image(data.assinatura_final_base64, "assinaturas", "sig_final_")
     assinatura = Assinatura(
         anamnese_id=anamnese.id,
@@ -165,6 +180,13 @@ def salvar_progresso(
     # Update observations
     if data.observacoes is not None:
         anamnese.observacoes = data.observacoes
+
+    # Update anexos descricoes if provided
+    if data.anexos_descricoes:
+        for ad in data.anexos_descricoes:
+            anexo = next((a for a in anamnese.anexos if a.id == ad.anexo_id), None)
+            if anexo:
+                anexo.descricao = ad.descricao
 
     # Save signature if provided (without finalizing)
     if data.assinatura_final_base64:

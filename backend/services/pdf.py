@@ -335,9 +335,16 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
         elements.append(Paragraph("Fotos do Procedimento", styles['SectionTitle']))
 
         bancada_anexos = [a for a in anamnese.anexos if a.tipo == 'bancada']
-        antes_depois_anexos = [a for a in anamnese.anexos if a.tipo != 'bancada']
+        antes_depois_anexos = [a for a in anamnese.anexos if a.tipo == 'antes_depois']
+        adicionais_anexos = [a for a in anamnese.anexos if a.tipo not in ('bancada', 'antes_depois')]
 
-        for grupo, titulo in [(bancada_anexos, "Foto da Bancada"), (antes_depois_anexos, "Antes / Depois")]:
+        grupos = [
+            (bancada_anexos, "Foto da Bancada"),
+            (antes_depois_anexos, "Antes / Depois"),
+            (adicionais_anexos, "Fotos Adicionais")
+        ]
+
+        for grupo, titulo in grupos:
             if not grupo:
                 continue
             elements.append(Paragraph(titulo, styles['FieldLabel']))
