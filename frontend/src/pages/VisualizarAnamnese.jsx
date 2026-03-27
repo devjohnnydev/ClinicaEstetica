@@ -50,6 +50,28 @@ export default function VisualizarAnamnese() {
     }
   };
 
+  const getImageUrl = (path, defaultFolder) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    if (cleanPath.includes('/')) return `${UPLOAD_URL}/${cleanPath}`;
+    return `${UPLOAD_URL}/${defaultFolder}/${cleanPath}`;
+  };
+
+  const handleImageError = (e) => {
+    const parent = e.target.parentElement;
+    e.target.style.display = 'none';
+    if (!parent.querySelector('.img-fallback')) {
+      const fallback = document.createElement('div');
+      fallback.className = 'img-fallback flex flex-col items-center justify-center p-3 text-red-400 bg-red-50/50 rounded-xl w-full h-full min-h-[80px] border border-dashed border-red-200';
+      fallback.innerHTML = `
+        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="20" width="20" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        <span class="text-[10px] font-medium mt-1 text-center leading-tight">Imagem indisp.</span>
+      `;
+      parent.appendChild(fallback);
+    }
+  };
+
   const handleUploadFoto = async (tipo) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -266,7 +288,14 @@ export default function VisualizarAnamnese() {
       {assinaturaInicial && (
         <div className="bg-white rounded-3xl p-5 shadow-card">
           <h3 className="font-heading font-semibold text-dark mb-3">Assinatura Inicial</h3>
-          <img src={`${UPLOAD_URL}/${assinaturaInicial.imagem_path}`} alt="Assinatura inicial" className="max-h-32 border rounded-xl" />
+          <div className="relative inline-block w-full max-w-sm">
+            <img 
+              src={getImageUrl(assinaturaInicial.imagem_path, 'assinaturas')} 
+              alt="Assinatura inicial" 
+              className="max-h-32 w-full object-contain border border-secondary/30 rounded-xl" 
+              onError={handleImageError}
+            />
+          </div>
           <p className="text-dark/30 text-xs mt-2">
             Assinada em: {assinaturaInicial.created_at ? new Date(assinaturaInicial.created_at).toLocaleString('pt-BR') : '—'}
           </p>
@@ -287,8 +316,10 @@ export default function VisualizarAnamnese() {
           <h3 className="font-heading font-semibold text-dark mb-3">Fotos Anexadas</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {anamnese.anexos.map(a => (
-              <div key={a.id} className="rounded-2xl overflow-hidden border border-secondary/30">
-                <img src={`${UPLOAD_URL}/${a.arquivo_path}`} alt={a.descricao || a.tipo} className="w-full h-48 object-cover" />
+              <div key={a.id} className="rounded-2xl overflow-hidden border border-secondary/30 flex flex-col">
+                <div className="relative w-full h-48 bg-soft/30 flex-shrink-0">
+                  <img src={getImageUrl(a.arquivo_path, 'anexos')} alt={a.descricao || a.tipo} className="w-full h-full object-cover" onError={handleImageError} />
+                </div>
                 <div className="p-3">
                   <span className="px-2 py-0.5 rounded-lg bg-accent/10 text-accent text-xs font-medium">
                     {a.tipo === 'bancada' ? 'Bancada' : 'Antes/Depois'}
@@ -306,7 +337,14 @@ export default function VisualizarAnamnese() {
         <div className="bg-white rounded-3xl p-5 shadow-card">
           <h3 className="font-heading font-semibold text-dark mb-3">Assinatura Final — Confirmação</h3>
           <p className="text-dark/50 text-sm mb-3">O paciente confirmou que o procedimento foi realizado corretamente.</p>
-          <img src={`${UPLOAD_URL}/${assinaturaFinalExistente.imagem_path}`} alt="Assinatura final" className="max-h-32 border rounded-xl" />
+          <div className="relative inline-block w-full max-w-sm">
+            <img 
+              src={getImageUrl(assinaturaFinalExistente.imagem_path, 'assinaturas')} 
+              alt="Assinatura final" 
+              className="max-h-32 w-full object-contain border border-secondary/30 rounded-xl" 
+              onError={handleImageError}
+            />
+          </div>
           <p className="text-dark/30 text-xs mt-2">
             Assinada em: {assinaturaFinalExistente.created_at ? new Date(assinaturaFinalExistente.created_at).toLocaleString('pt-BR') : '—'}
           </p>
@@ -388,8 +426,8 @@ export default function VisualizarAnamnese() {
             {anamnese.anexos?.filter(a => a.tipo === 'bancada').length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {anamnese.anexos.filter(a => a.tipo === 'bancada').map(a => (
-                  <div key={a.id} className="relative rounded-xl overflow-hidden group">
-                    <img src={`${UPLOAD_URL}/${a.arquivo_path}`} alt="Bancada" className="w-full h-28 object-cover" />
+                  <div key={a.id} className="relative rounded-xl overflow-hidden group border border-secondary/30 w-full h-28 bg-soft/30">
+                    <img src={getImageUrl(a.arquivo_path, 'anexos')} alt="Bancada" className="w-full h-full object-cover" onError={handleImageError} />
                     <button
                       onClick={() => handleDeleteAnexo(a.id)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -437,8 +475,8 @@ export default function VisualizarAnamnese() {
             {anamnese.anexos?.filter(a => a.tipo === 'antes_depois').length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {anamnese.anexos.filter(a => a.tipo === 'antes_depois').map(a => (
-                  <div key={a.id} className="relative rounded-xl overflow-hidden group">
-                    <img src={`${UPLOAD_URL}/${a.arquivo_path}`} alt="Antes/Depois" className="w-full h-28 object-cover" />
+                  <div key={a.id} className="relative rounded-xl overflow-hidden group border border-secondary/30 w-full h-28 bg-soft/30">
+                    <img src={getImageUrl(a.arquivo_path, 'anexos')} alt="Antes/Depois" className="w-full h-full object-cover" onError={handleImageError} />
                     <button
                       onClick={() => handleDeleteAnexo(a.id)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -486,8 +524,10 @@ export default function VisualizarAnamnese() {
             {anamnese.anexos?.filter(a => a.tipo === 'adicionais').length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {anamnese.anexos.filter(a => a.tipo === 'adicionais').map(a => (
-                  <div key={a.id} className="relative rounded-xl overflow-hidden border border-secondary/30">
-                    <img src={`${UPLOAD_URL}/${a.arquivo_path}`} alt="Foto Adicional" className="w-full h-32 object-cover" />
+                  <div key={a.id} className="relative rounded-xl overflow-hidden border border-secondary/30 flex flex-col">
+                    <div className="relative w-full h-32 bg-soft/30 flex-shrink-0">
+                      <img src={getImageUrl(a.arquivo_path, 'anexos')} alt="Foto Adicional" className="w-full h-full object-cover" onError={handleImageError} />
+                    </div>
                     <button
                       onClick={() => handleDeleteAnexo(a.id)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-[&:hover]:opacity-100 transition-opacity z-10 hover:bg-red-600 shadow-sm"
