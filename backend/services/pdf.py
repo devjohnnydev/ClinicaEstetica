@@ -16,6 +16,13 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from sqlalchemy.orm import Session
 from models.db_file import DbFile
 from config import settings
+from services.termos_legais import (
+    html_termo_consentimento,
+    html_termo_uso_imagem,
+    html_termo_satisfacao,
+    nome_profissional_autorizacao,
+    label_uso_imagem_escolha,
+)
 
 # ─── Clinic Brand Colors ───
 BEIGE = colors.HexColor("#F5EDE6")
@@ -100,6 +107,25 @@ def get_custom_styles():
         fontSize=9,
         textColor=TEXT_COLOR,
         alignment=TA_CENTER,
+    ))
+    styles.add(ParagraphStyle(
+        'TermoBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        textColor=TEXT_COLOR,
+        leading=11,
+        alignment=TA_LEFT,
+        spaceAfter=3 * mm,
+    ))
+    styles.add(ParagraphStyle(
+        'TermoMeta',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        textColor=TEXT_LIGHT,
+        spaceBefore=2 * mm,
+        spaceAfter=2 * mm,
     ))
     return styles
 
@@ -199,6 +225,47 @@ def _get_image_flowable(filepath: str, db: Session, width, height, kind='proport
         return RLImage(disk_path, width=width, height=height, kind=kind)
         
     return None
+
+
+def _format_local_datetime(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt).astimezone(BRAZIL_TZ)
+    else:
+        dt = dt.astimezone(BRAZIL_TZ)
+    return dt.strftime("%d/%m/%Y às %H:%M")
+
+
+def _assinaturas_por_tipo(assinaturas):
+    m = {}
+    for a in assinaturas or []:
+        m[a.tipo] = a
+    return m
+
+
+def _append_assinatura_box(elements, styles, caption, filepath, db):
+    elements.append(Spacer(1, 2 * mm))
+    elements.append(Paragraph(caption, styles['FieldLabel']))
+    sig_img = _get_image_flowable(filepath, db, width=8 * cm, height=2.5 * cm)
+    if sig_img:
+        try:
+            sig_table = Table([[sig_img], [Paragraph("Assinatura do(a) paciente", styles['SignatureLabel'])]], colWidths=[10 * cm])
+            sig_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3 * mm),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3 * mm),
+                ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
+                ('BOX', (0, 0), (-1, -1), 0.5, BORDER_LIGHT),
+                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+            ]))
+            elements.append(sig_table)
+        except Exception:
+            elements.append(Paragraph("[Assinatura indisponível]", styles['FieldValue']))
+    else:
+        elements.append(Paragraph("[Assinatura não disponível]", styles['FieldValue']))
+    elements.append(Spacer(1, 4 * mm))
 
 
 def generate_anamnese_pdf(anamnese, db) -> bytes:
@@ -330,38 +397,62 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
         ]))
         elements.append(obs_table)
 
-    # ─── SIGNATURES ───
-    elements.append(Paragraph("Assinaturas", styles['SectionTitle']))
+    # ─── DOCUMENTOS LEGAIS (assinaturas na criação da ficha) ───
+    elements.append(Paragraph("Documentos legais — fase de anamnese", styles['SectionTitle']))
+    sig_map = _assinaturas_por_tipo(anamnese.assinaturas)
+    pac = anamnese.paciente
+    proc_nome = anamnese.modelo.nome_procedimento if anamnese.modelo else "—"
+    local_txt = settings.CLINICA_LOCAL_ATENDIMENTO
 
-    for assinatura in anamnese.assinaturas:
-        tipo_label = "Assinatura Inicial do Paciente" if assinatura.tipo == "inicial" else "Assinatura Final — Confirmação"
-        elements.append(Spacer(1, 2 * mm))
+    consent_sig = sig_map.get("consentimento") or sig_map.get("inicial")
+    if pac and consent_sig:
+        elements.append(Paragraph(html_termo_consentimento(
+            nome=pac.nome or "—",
+            cpf=pac.cpf or "—",
+            procedimento=proc_nome,
+        ), styles['TermoBody']))
+        dt_consent = _format_local_datetime(consent_sig.created_at)
+        elements.append(Paragraph(
+            f"<b>Local:</b> {local_txt}<br/><b>Data e hora da assinatura:</b> {dt_consent or '—'}",
+            styles['TermoMeta'],
+        ))
+        _append_assinatura_box(
+            elements, styles,
+            "Assinatura do(a) paciente — Termo de consentimento (obrigatório)",
+            consent_sig.imagem_path, db,
+        )
+        elements.append(_thin_divider())
 
-        sig_img = _get_image_flowable(assinatura.imagem_path, db, width=8 * cm, height=2.5 * cm)
-        if sig_img:
-            try:
-                # Create a styled signature box
-                sig_table_data = [
-                    [sig_img],
-                    [Paragraph(tipo_label, styles['SignatureLabel'])],
-                ]
-                sig_table = Table(sig_table_data, colWidths=[10 * cm])
-                sig_table.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 3 * mm),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3 * mm),
-                    ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
-                    ('BOX', (0, 0), (-1, -1), 0.5, BORDER_LIGHT),
-                    ('LINEBELOW', (0, 0), (0, 0), 0.5, NUDE),
-                    ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-                ]))
-                elements.append(sig_table)
-            except Exception:
-                elements.append(Paragraph(f"{tipo_label}: [Erro ao carregar assinatura]", styles['FieldValue']))
+    uso_sig = sig_map.get("uso_imagem")
+    uso_escolha = getattr(anamnese, "uso_imagem_escolha", None)
+    if pac and (uso_escolha or uso_sig):
+        elements.append(Paragraph(html_termo_uso_imagem(
+            nome=pac.nome or "—",
+            cpf=pac.cpf or "—",
+            profissional=nome_profissional_autorizacao(),
+        ), styles['TermoBody']))
+        elements.append(Paragraph(
+            f"<b>Manifestação registrada:</b> {label_uso_imagem_escolha(uso_escolha)}",
+            styles['TermoMeta'],
+        ))
+        dt_uso = _format_local_datetime(uso_sig.created_at) if uso_sig else _format_local_datetime(anamnese.created_at)
+        elements.append(Paragraph(
+            f"<b>Local:</b> {local_txt}<br/><b>Data e hora do registro:</b> {dt_uso or '—'}",
+            styles['TermoMeta'],
+        ))
+        if uso_sig:
+            _append_assinatura_box(
+                elements, styles,
+                "Assinatura do(a) paciente — Termo de uso de imagem (opcional)",
+                uso_sig.imagem_path, db,
+            )
         else:
-            elements.append(Paragraph(f"{tipo_label}: [Assinatura não disponível]", styles['FieldValue']))
-        elements.append(Spacer(1, 4 * mm))
+            elements.append(Paragraph(
+                "<i>Assinatura manuscrita não anexada neste termo; manifestação registrada apenas pela opção acima.</i>",
+                styles['TermoMeta'],
+            ))
+            elements.append(Spacer(1, 3 * mm))
+        elements.append(_thin_divider())
 
     # ─── ATTACHMENTS ───
     if anamnese.anexos:
@@ -404,6 +495,28 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
                 if anexo.descricao and anexo.descricao.strip().lower() not in ["", "foto da bancada", "antes/depois", "antes / depois"]:
                     elements.append(Paragraph(anexo.descricao, styles['FieldValue']))
                 elements.append(Spacer(1, 3 * mm))
+
+    # ─── TERMO FINAL (conclusão / satisfação) — após registros do procedimento ───
+    final_sig = sig_map.get("final")
+    satisfacao = getattr(anamnese, "satisfacao_procedimento", None) or ""
+    if pac and final_sig:
+        elements.append(Paragraph("Documento legal — conclusão do procedimento", styles['SectionTitle']))
+        elements.append(Paragraph(html_termo_satisfacao(
+            nome=pac.nome or "—",
+            cpf=pac.cpf or "—",
+            procedimento=proc_nome,
+            opcao=satisfacao,
+        ), styles['TermoBody']))
+        dt_fin = _format_local_datetime(anamnese.finalizada_at or final_sig.created_at)
+        elements.append(Paragraph(
+            f"<b>Local:</b> {local_txt}<br/><b>Data e hora da assinatura:</b> {dt_fin or '—'}",
+            styles['TermoMeta'],
+        ))
+        _append_assinatura_box(
+            elements, styles,
+            "Assinatura do(a) paciente — Termo de ciência, conclusão e satisfação (final)",
+            final_sig.imagem_path, db,
+        )
 
     # ─── FOOTER ───
     elements.append(Spacer(1, 10 * mm))

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 
-export default function SignatureCanvas({ onSave, label = "Assinatura" }) {
+export default function SignatureCanvas({ onSave, label = "Assinatura", hint }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
@@ -121,8 +121,10 @@ export default function SignatureCanvas({ onSave, label = "Assinatura" }) {
           onTouchEnd={stopDrawing}
         />
         {!hasContent && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-dark/20 text-sm">Assine aqui — use mouse, touch ou caneta digital</p>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
+            <p className="text-dark/20 text-sm">
+              {hint || 'Assine aqui — use mouse, touch ou caneta digital'}
+            </p>
           </div>
         )}
       </div>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { getPacientes, criarPaciente, getModelos, getModelo, criarAnamnese } from '../services/api';
 import SignatureCanvas from '../components/SignatureCanvas';
 import FacePaintModal from '../components/FacePaintModal';
+import { TermoConsentimentoBloco, TermoUsoImagemBloco } from '../components/TermosAnamneseTextos';
+import { CLINICA_LOCAL } from '../constants/clinica';
 import { FiUser, FiPlus, FiSearch, FiCheck, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 
 const STEPS = [
@@ -37,8 +39,10 @@ export default function NovaAnamnese() {
   const [faceImageEdited, setFaceImageEdited] = useState(null);
   const [faceEditorOpen, setFaceEditorOpen] = useState(false);
 
-  // Step 4: Signature
-  const [assinatura, setAssinatura] = useState(null);
+  // Step 4: Assinaturas (termo 1 obrigatório; termo 2 opcional)
+  const [assinaturaConsentimento, setAssinaturaConsentimento] = useState(null);
+  const [assinaturaUsoImagem, setAssinaturaUsoImagem] = useState(null);
+  const [usoImagemEscolha, setUsoImagemEscolha] = useState('');
 
   useEffect(() => {
     loadPacientes();
@@ -110,8 +114,11 @@ export default function NovaAnamnese() {
             if (Array.isArray(val)) return val.length > 0;
             return val && val.toString().trim() !== '';
           });
-      case 4:
-        return !!assinatura;
+      case 4: {
+        if (!assinaturaConsentimento) return false;
+        if (assinaturaUsoImagem && !usoImagemEscolha) return false;
+        return true;
+      }
       default:
         return false;
     }
@@ -149,7 +156,9 @@ export default function NovaAnamnese() {
           campo_id: parseInt(campoId),
           valor: valor,
         })),
-        assinatura_base64: assinatura,
+        assinatura_consentimento_base64: assinaturaConsentimento,
+        assinatura_uso_imagem_base64: assinaturaUsoImagem || null,
+        uso_imagem_escolha: usoImagemEscolha || null,
         rosto_editado_base64: faceImageEdited || null,
       };
       const res = await criarAnamnese(payload);
@@ -307,6 +316,11 @@ export default function NovaAnamnese() {
   };
 
   const activeFaceImage = faceImageEdited || resolveFaceModelImage();
+
+  const pacienteNome = selectedPaciente?.nome || '';
+  const pacienteCpf = selectedPaciente?.cpf || '';
+  const nomeProcedimento = modeloCompleto?.nome_procedimento || selectedModelo?.nome_procedimento || '';
+  const dataHoraRef = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
@@ -577,17 +591,73 @@ export default function NovaAnamnese() {
           </div>
         )}
 
-        {/* STEP 4: Signature */}
+        {/* STEP 4: Termos e assinaturas */}
         {step === 4 && (
-          <div className="space-y-5">
-            <h2 className="font-heading font-semibold text-dark text-lg">Assinatura do Paciente</h2>
-            <p className="text-dark/50 text-sm">
-              O paciente deve assinar abaixo confirmando as informações preenchidas.
-            </p>
-            <SignatureCanvas
-              label="Assinatura — Use mouse, touch ou caneta digital"
-              onSave={setAssinatura}
+          <div className="space-y-8">
+            <div>
+              <h2 className="font-heading font-semibold text-dark text-lg">Declarações e assinaturas</h2>
+              <p className="text-dark/50 text-sm mt-1">
+                Leia cada termo com atenção. Os dados do paciente e do procedimento são preenchidos automaticamente.
+                Apenas as assinaturas manuscritas são necessárias onde indicado.
+              </p>
+            </div>
+
+            <TermoConsentimentoBloco
+              nome={pacienteNome}
+              cpf={pacienteCpf}
+              procedimento={nomeProcedimento}
+              local={CLINICA_LOCAL}
+              dataHoraPreview={dataHoraRef}
             />
+            <SignatureCanvas
+              label="Assinatura do(a) paciente — termo de consentimento (obrigatória)"
+              hint="Assinatura obrigatória para concluir a ficha"
+              onSave={setAssinaturaConsentimento}
+            />
+
+            <div className="pt-2 border-t border-soft">
+              <p className="text-xs font-medium text-dark/50 uppercase tracking-wide mb-3">Opcional — uso de imagem</p>
+              <TermoUsoImagemBloco
+                nome={pacienteNome}
+                cpf={pacienteCpf}
+                local={CLINICA_LOCAL}
+                dataHoraPreview={dataHoraRef}
+              />
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-medium text-dark/80">Manifestação sobre uso de imagem</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-secondary/30 cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                    <input
+                      type="radio"
+                      name="uso_imagem"
+                      checked={usoImagemEscolha === 'autorizo'}
+                      onChange={() => setUsoImagemEscolha('autorizo')}
+                      className="w-4 h-4 text-accent"
+                    />
+                    <span className="text-sm text-dark">Autorizo o uso da minha imagem nos termos acima</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 rounded-xl border border-secondary/30 cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                    <input
+                      type="radio"
+                      name="uso_imagem"
+                      checked={usoImagemEscolha === 'nao_autorizo'}
+                      onChange={() => setUsoImagemEscolha('nao_autorizo')}
+                      className="w-4 h-4 text-accent"
+                    />
+                    <span className="text-sm text-dark">Não autorizo o uso da minha imagem para divulgação</span>
+                  </label>
+                </div>
+                <p className="text-xs text-dark/45">
+                  Se desejar registrar também assinatura manuscrita neste termo, use o campo abaixo. Se preferir apenas a
+                  opção acima, não é necessário assinar.
+                </p>
+                <SignatureCanvas
+                  label="Assinatura do(a) paciente — termo de uso de imagem (opcional)"
+                  hint="Opcional — assine somente se quiser reforçar a manifestação por escrito"
+                  onSave={setAssinaturaUsoImagem}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>

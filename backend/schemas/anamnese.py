@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Literal
 
 
 class RespostaCreate(BaseModel):
@@ -44,7 +44,13 @@ class AnamneseCreate(BaseModel):
     paciente_id: int
     modelo_id: int
     respostas: List[RespostaCreate]
-    assinatura_base64: str  # Base64 encoded signature
+    assinatura_consentimento_base64: Optional[str] = None
+    assinatura_base64: Optional[str] = Field(
+        default=None,
+        description="Legado: equivalente a assinatura_consentimento_base64",
+    )
+    assinatura_uso_imagem_base64: Optional[str] = None
+    uso_imagem_escolha: Optional[Literal["autorizo", "nao_autorizo"]] = None
     rosto_editado_base64: Optional[str] = None
 
 
@@ -55,6 +61,7 @@ class AnexoDescricaoUpdate(BaseModel):
 
 class AnamneseFinalizarRequest(BaseModel):
     observacoes: Optional[str] = None
+    satisfacao_procedimento: Literal["satisfeito", "nao_satisfeito"]
     assinatura_final_base64: str  # Base64 encoded final signature
     anexos_descricoes: Optional[List[AnexoDescricaoUpdate]] = None
 
@@ -85,9 +92,12 @@ class AnamneseDetailResponse(BaseModel):
     status: str
     observacoes: Optional[str] = None
     rosto_editado_path: Optional[str] = None
+    uso_imagem_escolha: Optional[str] = None
+    satisfacao_procedimento: Optional[str] = None
     created_at: Optional[datetime] = None
     finalizada_at: Optional[datetime] = None
     paciente_nome: Optional[str] = None
+    paciente_cpf: Optional[str] = None
     paciente_genero: Optional[str] = None
     nome_procedimento: Optional[str] = None
     respostas: List[RespostaResponse] = []

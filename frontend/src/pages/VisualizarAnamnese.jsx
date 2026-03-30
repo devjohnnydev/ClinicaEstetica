@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAnamnese, finalizarAnamnese, salvarProgresso, uploadAnexo, deletarAnexo, downloadPdf, UPLOAD_URL } from '../services/api';
 import SignatureCanvas from '../components/SignatureCanvas';
+import { TermoSatisfacaoBloco } from '../components/TermosAnamneseTextos';
+import { CLINICA_LOCAL } from '../constants/clinica';
 import { FiArrowLeft, FiEye, FiDownload, FiTrash2, FiUpload, FiCheckCircle, FiImage, FiEdit3, FiX, FiCamera, FiSave } from 'react-icons/fi';
 
 export default function VisualizarAnamnese() {
@@ -14,6 +16,7 @@ export default function VisualizarAnamnese() {
   // Finalization
   const [observacoes, setObservacoes] = useState('');
   const [assinaturaFinal, setAssinaturaFinal] = useState(null);
+  const [satisfacaoProcedimento, setSatisfacaoProcedimento] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [anexosDescricoes, setAnexosDescricoes] = useState({});
@@ -135,14 +138,19 @@ export default function VisualizarAnamnese() {
   };
 
   const handleFinalizar = async () => {
+    if (!satisfacaoProcedimento) {
+      alert('Selecione a manifestação de satisfação do paciente (obrigatório para finalizar).');
+      return;
+    }
     if (!assinaturaFinal) {
-      alert('É necessária a assinatura final do paciente');
+      alert('É necessária a assinatura do termo de conclusão e satisfação do paciente.');
       return;
     }
     setSaving(true);
     try {
       await finalizarAnamnese(id, {
         observacoes: observacoes || null,
+        satisfacao_procedimento: satisfacaoProcedimento,
         assinatura_final_base64: assinaturaFinal,
         anexos_descricoes: Object.entries(anexosDescricoes).map(([anexoId, desc]) => ({
           anexo_id: parseInt(anexoId),
@@ -212,8 +220,23 @@ export default function VisualizarAnamnese() {
   }
 
   const isFinalizada = anamnese.status === 'finalizada';
-  const assinaturaInicial = anamnese.assinaturas?.find(a => a.tipo === 'inicial');
+  const assinaturaConsentimento = anamnese.assinaturas?.find(a => a.tipo === 'consentimento' || a.tipo === 'inicial');
+  const assinaturaUsoImagem = anamnese.assinaturas?.find(a => a.tipo === 'uso_imagem');
   const assinaturaFinalExistente = anamnese.assinaturas?.find(a => a.tipo === 'final');
+
+  const labelUsoImagemEscolha = (esc) => {
+    if (esc === 'autorizo') return 'Autorizo o uso da minha imagem nos termos descritos no termo.';
+    if (esc === 'nao_autorizo') return 'Não autorizo o uso da minha imagem para divulgação.';
+    return null;
+  };
+
+  const labelSatisfacao = (s) => {
+    if (s === 'satisfeito') return 'Manifestou-se satisfeito(a) com o procedimento.';
+    if (s === 'nao_satisfeito') return 'Manifestou insatisfação e foi orientado(a) quanto a possíveis ajustes.';
+    return null;
+  };
+
+  const dataHoraFinalPreview = new Date().toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
@@ -254,6 +277,9 @@ export default function VisualizarAnamnese() {
         <h3 className="font-heading font-semibold text-dark mb-3">Dados do Paciente</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div><span className="text-dark/40">Nome:</span> <span className="font-medium text-dark">{anamnese.paciente_nome}</span></div>
+          {anamnese.paciente_cpf && (
+            <div><span className="text-dark/40">CPF:</span> <span className="text-dark">{anamnese.paciente_cpf}</span></div>
+          )}
           <div><span className="text-dark/40">Procedimento:</span> <span className="font-medium text-dark">{anamnese.nome_procedimento}</span></div>
           {anamnese.paciente_genero && (
             <div><span className="text-dark/40">Gênero:</span> <span className="text-dark">{anamnese.paciente_genero}</span></div>
@@ -299,21 +325,56 @@ export default function VisualizarAnamnese() {
         </div>
       </div>
 
-      {/* Initial signature */}
-      {assinaturaInicial && (
-        <div className="bg-white rounded-3xl p-5 shadow-card">
-          <h3 className="font-heading font-semibold text-dark mb-3">Assinatura Inicial</h3>
-          <div className="relative inline-block w-full max-w-sm">
-            <img 
-              src={getImageUrl(assinaturaInicial.imagem_path, 'assinaturas')} 
-              alt="Assinatura inicial" 
-              className="max-h-32 w-full object-contain border border-secondary/30 rounded-xl" 
+      {/* Termos e assinaturas — fase de anamnese */}
+      {assinaturaConsentimento && (
+        <div className="bg-white rounded-3xl p-5 shadow-card space-y-3">
+          <h3 className="font-heading font-semibold text-dark">Termo de consentimento (assinatura 1)</h3>
+          <p className="text-dark/50 text-sm">
+            Consentimento livre e esclarecido para realização do procedimento estético e ciência de riscos.
+          </p>
+          <div className="relative inline-block w-full max-w-md">
+            <img
+              src={getImageUrl(assinaturaConsentimento.imagem_path, 'assinaturas')}
+              alt="Assinatura — consentimento"
+              className="max-h-36 w-full object-contain border border-secondary/30 rounded-xl bg-soft/20"
               onError={handleImageError}
             />
           </div>
-          <p className="text-dark/30 text-xs mt-2">
-            Assinada em: {assinaturaInicial.created_at ? new Date(assinaturaInicial.created_at).toLocaleString('pt-BR') : '—'}
+          <p className="text-dark/30 text-xs">
+            Registrada em:{' '}
+            {assinaturaConsentimento.created_at
+              ? new Date(assinaturaConsentimento.created_at).toLocaleString('pt-BR')
+              : '—'}
           </p>
+        </div>
+      )}
+
+      {(anamnese.uso_imagem_escolha || assinaturaUsoImagem) && (
+        <div className="bg-white rounded-3xl p-5 shadow-card space-y-3">
+          <h3 className="font-heading font-semibold text-dark">Termo de uso de imagem (assinatura 2 — opcional)</h3>
+          {anamnese.uso_imagem_escolha && (
+            <p className="text-sm text-dark/80 font-medium">{labelUsoImagemEscolha(anamnese.uso_imagem_escolha)}</p>
+          )}
+          {assinaturaUsoImagem ? (
+            <>
+              <div className="relative inline-block w-full max-w-md">
+                <img
+                  src={getImageUrl(assinaturaUsoImagem.imagem_path, 'assinaturas')}
+                  alt="Assinatura — uso de imagem"
+                  className="max-h-36 w-full object-contain border border-secondary/30 rounded-xl bg-soft/20"
+                  onError={handleImageError}
+                />
+              </div>
+              <p className="text-dark/30 text-xs">
+                Assinatura registrada em:{' '}
+                {assinaturaUsoImagem.created_at
+                  ? new Date(assinaturaUsoImagem.created_at).toLocaleString('pt-BR')
+                  : '—'}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-dark/50 italic">Sem assinatura manuscrita anexada; manifestação registrada pela opção acima.</p>
+          )}
         </div>
       )}
 
@@ -347,21 +408,31 @@ export default function VisualizarAnamnese() {
         </div>
       )}
 
-      {/* Final signature (if finalized) */}
-      {assinaturaFinalExistente && (
-        <div className="bg-white rounded-3xl p-5 shadow-card">
-          <h3 className="font-heading font-semibold text-dark mb-3">Assinatura Final — Confirmação</h3>
-          <p className="text-dark/50 text-sm mb-3">O paciente confirmou que o procedimento foi realizado corretamente.</p>
-          <div className="relative inline-block w-full max-w-sm">
-            <img 
-              src={getImageUrl(assinaturaFinalExistente.imagem_path, 'assinaturas')} 
-              alt="Assinatura final" 
-              className="max-h-32 w-full object-contain border border-secondary/30 rounded-xl" 
+      {/* Termo final — conclusão (se ficha finalizada) */}
+      {assinaturaFinalExistente && isFinalizada && (
+        <div className="bg-white rounded-3xl p-5 shadow-card space-y-3">
+          <h3 className="font-heading font-semibold text-dark">Termo de ciência, conclusão e satisfação (assinatura 3)</h3>
+          {anamnese.satisfacao_procedimento && (
+            <p className="text-sm text-dark/80 font-medium">{labelSatisfacao(anamnese.satisfacao_procedimento)}</p>
+          )}
+          <p className="text-dark/50 text-sm">
+            Declaração de encerramento do atendimento, recebimento de orientações e manifestação sobre o resultado.
+          </p>
+          <div className="relative inline-block w-full max-w-md">
+            <img
+              src={getImageUrl(assinaturaFinalExistente.imagem_path, 'assinaturas')}
+              alt="Assinatura — termo final"
+              className="max-h-36 w-full object-contain border border-secondary/30 rounded-xl bg-soft/20"
               onError={handleImageError}
             />
           </div>
-          <p className="text-dark/30 text-xs mt-2">
-            Assinada em: {assinaturaFinalExistente.created_at ? new Date(assinaturaFinalExistente.created_at).toLocaleString('pt-BR') : '—'}
+          <p className="text-dark/30 text-xs">
+            Registrada em:{' '}
+            {anamnese.finalizada_at
+              ? new Date(anamnese.finalizada_at).toLocaleString('pt-BR')
+              : assinaturaFinalExistente.created_at
+                ? new Date(assinaturaFinalExistente.created_at).toLocaleString('pt-BR')
+                : '—'}
           </p>
         </div>
       )}
@@ -390,8 +461,11 @@ export default function VisualizarAnamnese() {
       {!isFinalizada && showFinalize && (
         <div className="space-y-6 animate-fadeIn">
           <div className="bg-gradient-to-r from-accent/10 to-secondary/20 rounded-3xl p-5">
-            <h2 className="font-display text-xl font-semibold text-dark">Finalização do Procedimento</h2>
-            <p className="text-dark/50 text-sm mt-1">Etapa final — Observações, fotos e assinatura de confirmação</p>
+            <h2 className="font-display text-xl font-semibold text-dark">Finalização do procedimento</h2>
+            <p className="text-dark/50 text-sm mt-1">
+              Registre observações, anexe fotos quando aplicável e colete o termo de conclusão e satisfação com assinatura
+              do paciente.
+            </p>
           </div>
 
           {/* Observations */}
@@ -571,14 +645,53 @@ export default function VisualizarAnamnese() {
             </div>
           )}
 
-          {/* Final signature */}
-          <div className="bg-white rounded-3xl p-5 shadow-card">
-            <h3 className="font-heading font-semibold text-dark mb-2">Assinatura Final do Paciente</h3>
-            <p className="text-dark/50 text-sm mb-4">
-              O paciente confirma que o procedimento foi realizado corretamente e está de acordo com tudo que foi descrito.
-            </p>
+          {/* Termo 3 — conclusão e satisfação */}
+          <div className="bg-white rounded-3xl p-5 shadow-card space-y-4">
+            <TermoSatisfacaoBloco
+              nome={anamnese.paciente_nome}
+              cpf={anamnese.paciente_cpf}
+              procedimento={anamnese.nome_procedimento}
+              local={CLINICA_LOCAL}
+              dataHoraPreview={dataHoraFinalPreview}
+            />
+            <div>
+              <p className="text-sm font-medium text-dark mb-3">Manifestação do paciente (obrigatória)</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <label
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${
+                    satisfacaoProcedimento === 'satisfeito' ? 'border-accent bg-accent/5' : 'border-secondary/30'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="satisfacao_final"
+                    checked={satisfacaoProcedimento === 'satisfeito'}
+                    onChange={() => setSatisfacaoProcedimento('satisfeito')}
+                    className="w-4 h-4 text-accent"
+                  />
+                  <span className="text-sm text-dark">Estou satisfeito(a) com o procedimento realizado</span>
+                </label>
+                <label
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${
+                    satisfacaoProcedimento === 'nao_satisfeito' ? 'border-accent bg-accent/5' : 'border-secondary/30'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="satisfacao_final"
+                    checked={satisfacaoProcedimento === 'nao_satisfeito'}
+                    onChange={() => setSatisfacaoProcedimento('nao_satisfeito')}
+                    className="w-4 h-4 text-accent"
+                  />
+                  <span className="text-sm text-dark">
+                    Não estou satisfeito(a); fui orientado(a) sobre possíveis ajustes
+                  </span>
+                </label>
+              </div>
+            </div>
             <SignatureCanvas
-              label="Assinatura de Confirmação"
+              label="Assinatura do(a) paciente — termo de conclusão e satisfação (obrigatória)"
+              hint="Assinatura obrigatória para finalizar a ficha"
               onSave={setAssinaturaFinal}
             />
           </div>
@@ -609,7 +722,7 @@ export default function VisualizarAnamnese() {
               </button>
               <button
                 onClick={handleFinalizar}
-                disabled={!assinaturaFinal || saving}
+                disabled={!assinaturaFinal || !satisfacaoProcedimento || saving}
                 className="px-8 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white font-heading font-semibold text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-green-500/25 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (

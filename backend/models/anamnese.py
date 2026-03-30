@@ -12,6 +12,8 @@ class Anamnese(Base):
     status = Column(String, nullable=False, default="em_andamento")  # em_andamento, finalizada
     observacoes = Column(Text, nullable=True)
     rosto_editado_path = Column(String, nullable=True)
+    uso_imagem_escolha = Column(String(20), nullable=True)  # autorizo | nao_autorizo
+    satisfacao_procedimento = Column(String(20), nullable=True)  # satisfeito | nao_satisfeito (finalização)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)
     updated_at = Column(DateTime(timezone=True), onupdate=get_brazil_time)
     finalizada_at = Column(DateTime(timezone=True), nullable=True)

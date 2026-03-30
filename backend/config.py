@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
     PORT: int = 8000
+    # Textos legais / PDF (sobrescreva no Railway → Variables)
+    CLINICA_PROFISSIONAL_RESPONSAVEL: str = "Profissional responsável pela clínica"
+    CLINICA_LOCAL_ATENDIMENTO: str = "Estabelecimento de saúde / registro eletrônico da clínica"
 
     class Config:
         env_file = ".env"

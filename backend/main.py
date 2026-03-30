@@ -154,6 +154,8 @@ def run_migrations_and_seed():
             ("modelos_anamnese", "rosto_modelo_tipo", "VARCHAR(30)"),
             # anamneses table
             ("anamneses", "rosto_editado_path", "VARCHAR"),
+            ("anamneses", "uso_imagem_escolha", "VARCHAR(20)"),
+            ("anamneses", "satisfacao_procedimento", "VARCHAR(20)"),
             # profissionais table
             ("profissionais", "email", "VARCHAR"),
             ("profissionais", "user_id", "INTEGER REFERENCES users(id)"),

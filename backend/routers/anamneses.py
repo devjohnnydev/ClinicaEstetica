@@ -82,14 +82,34 @@ def criar_anamnese(
         )
         db.add(db_resp)
 
-    # Save initial signature
-    sig_path = save_base64_image(data.assinatura_base64, "assinaturas", "sig_inicial_", db=db)
-    assinatura = Assinatura(
+    consent_b64 = data.assinatura_consentimento_base64 or data.assinatura_base64
+    if not consent_b64:
+        raise HTTPException(
+            status_code=400,
+            detail="Assinatura do termo de consentimento (obrigatória) não foi enviada.",
+        )
+    if data.assinatura_uso_imagem_base64 and not data.uso_imagem_escolha:
+        raise HTTPException(
+            status_code=400,
+            detail="Para assinar o termo de uso de imagem, selecione se autoriza ou não autoriza.",
+        )
+
+    sig_consent = save_base64_image(consent_b64, "assinaturas", "sig_consent_", db=db)
+    db.add(Assinatura(
         anamnese_id=anamnese.id,
-        tipo="inicial",
-        imagem_path=sig_path,
-    )
-    db.add(assinatura)
+        tipo="consentimento",
+        imagem_path=sig_consent,
+    ))
+
+    if data.uso_imagem_escolha:
+        anamnese.uso_imagem_escolha = data.uso_imagem_escolha
+    if data.assinatura_uso_imagem_base64:
+        sig_uso = save_base64_image(data.assinatura_uso_imagem_base64, "assinaturas", "sig_usoimg_", db=db)
+        db.add(Assinatura(
+            anamnese_id=anamnese.id,
+            tipo="uso_imagem",
+            imagem_path=sig_uso,
+        ))
 
     # Save edited face image for this anamnese (optional)
     if data.rosto_editado_base64:
@@ -136,6 +156,7 @@ def finalizar_anamnese(
         raise HTTPException(status_code=400, detail="Anamnese já finalizada")
     # Update observations
     anamnese.observacoes = data.observacoes
+    anamnese.satisfacao_procedimento = data.satisfacao_procedimento
     anamnese.status = "finalizada"
     anamnese.finalizada_at = get_brazil_time()
 
@@ -302,9 +323,12 @@ def _build_detail_response(anamnese, db):
         status=anamnese.status,
         observacoes=anamnese.observacoes,
         rosto_editado_path=anamnese.rosto_editado_path,
+        uso_imagem_escolha=getattr(anamnese, "uso_imagem_escolha", None),
+        satisfacao_procedimento=getattr(anamnese, "satisfacao_procedimento", None),
         created_at=anamnese.created_at,
         finalizada_at=anamnese.finalizada_at,
         paciente_nome=anamnese.paciente.nome if anamnese.paciente else None,
+        paciente_cpf=anamnese.paciente.cpf if anamnese.paciente else None,
         paciente_genero=anamnese.paciente.genero if anamnese.paciente else None,
         nome_procedimento=anamnese.modelo.nome_procedimento if anamnese.modelo else None,
         respostas=respostas,

@@ -8,7 +8,7 @@ class Assinatura(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     anamnese_id = Column(Integer, ForeignKey("anamneses.id", ondelete="CASCADE"), nullable=False)
-    tipo = Column(String, nullable=False)  # inicial, final
+    tipo = Column(String, nullable=False)  # consentimento, uso_imagem, final (legado: inicial)
     imagem_path = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)
 
