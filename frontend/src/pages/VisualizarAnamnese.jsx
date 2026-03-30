@@ -255,6 +255,9 @@ export default function VisualizarAnamnese() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div><span className="text-dark/40">Nome:</span> <span className="font-medium text-dark">{anamnese.paciente_nome}</span></div>
           <div><span className="text-dark/40">Procedimento:</span> <span className="font-medium text-dark">{anamnese.nome_procedimento}</span></div>
+          {anamnese.paciente_genero && (
+            <div><span className="text-dark/40">Gênero:</span> <span className="text-dark">{anamnese.paciente_genero}</span></div>
+          )}
           <div><span className="text-dark/40">Criada:</span> <span className="text-dark">{anamnese.created_at ? new Date(anamnese.created_at).toLocaleString('pt-BR') : '—'}</span></div>
           {anamnese.finalizada_at && (
             <div><span className="text-dark/40">Finalizada:</span> <span className="text-dark">{new Date(anamnese.finalizada_at).toLocaleString('pt-BR')}</span></div>
@@ -265,6 +268,17 @@ export default function VisualizarAnamnese() {
       {/* Responses */}
       <div className="bg-white rounded-3xl p-5 shadow-card">
         <h3 className="font-heading font-semibold text-dark mb-4">Respostas da Anamnese</h3>
+        {anamnese.rosto_editado_path && (
+          <div className="mb-5 p-3 rounded-2xl bg-soft/50">
+            <p className="text-xs text-dark/40 font-medium mb-2">Mapa Facial Editado</p>
+            <img
+              src={getImageUrl(anamnese.rosto_editado_path, 'anexos')}
+              alt="Mapa facial editado"
+              className="max-h-[420px] mx-auto rounded-xl border border-secondary/30"
+              onError={handleImageError}
+            />
+          </div>
+        )}
         <div className="space-y-4">
           {anamnese.respostas?.map(r => (
             <div key={r.id} className="p-3 rounded-2xl bg-soft/50">

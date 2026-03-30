@@ -10,6 +10,7 @@ class ModeloAnamnese(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome_procedimento = Column(String, nullable=False, index=True)
     descricao = Column(Text, nullable=True)
+    rosto_modelo_tipo = Column(String(30), nullable=True)  # muscular | positionsfem
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

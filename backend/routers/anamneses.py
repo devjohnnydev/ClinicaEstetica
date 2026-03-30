@@ -91,6 +91,11 @@ def criar_anamnese(
     )
     db.add(assinatura)
 
+    # Save edited face image for this anamnese (optional)
+    if data.rosto_editado_base64:
+        rosto_path = save_base64_image(data.rosto_editado_base64, "anexos", "rosto_editado_", db=db)
+        anamnese.rosto_editado_path = rosto_path
+
     db.commit()
     db.refresh(anamnese)
 
@@ -296,9 +301,11 @@ def _build_detail_response(anamnese, db):
         modelo_id=anamnese.modelo_id,
         status=anamnese.status,
         observacoes=anamnese.observacoes,
+        rosto_editado_path=anamnese.rosto_editado_path,
         created_at=anamnese.created_at,
         finalizada_at=anamnese.finalizada_at,
         paciente_nome=anamnese.paciente.nome if anamnese.paciente else None,
+        paciente_genero=anamnese.paciente.genero if anamnese.paciente else None,
         nome_procedimento=anamnese.modelo.nome_procedimento if anamnese.modelo else None,
         respostas=respostas,
         assinaturas=assinaturas,

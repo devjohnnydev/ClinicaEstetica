@@ -148,6 +148,12 @@ def run_migrations_and_seed():
     try:
         # ── Column migrations (safe: ignores if column already exists) ──
         migrations = [
+            # pacientes table
+            ("pacientes", "genero", "VARCHAR(10)"),
+            # modelos_anamnese table
+            ("modelos_anamnese", "rosto_modelo_tipo", "VARCHAR(30)"),
+            # anamneses table
+            ("anamneses", "rosto_editado_path", "VARCHAR"),
             # profissionais table
             ("profissionais", "email", "VARCHAR"),
             ("profissionais", "user_id", "INTEGER REFERENCES users(id)"),
@@ -182,6 +188,8 @@ def run_migrations_and_seed():
 
         # Set perfil='admin' for existing users that have NULL perfil
         db.execute(text("UPDATE users SET perfil='admin' WHERE perfil IS NULL"))
+        # Backfill required default for existing patients
+        db.execute(text("UPDATE pacientes SET genero='feminino' WHERE genero IS NULL"))
         db.commit()
     finally:
         db.close()

@@ -31,6 +31,7 @@ def listar_pacientes(
             nome=p.nome,
             cpf=p.cpf,
             telefone=p.telefone,
+            genero=p.genero,
             created_at=p.created_at,
             total_anamneses=total or 0,
         ))

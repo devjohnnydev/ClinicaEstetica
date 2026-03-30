@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPacientes, criarPaciente, getModelos, getModelo, criarAnamnese } from '../services/api';
 import SignatureCanvas from '../components/SignatureCanvas';
+import FacePaintModal from '../components/FacePaintModal';
 import { FiUser, FiPlus, FiSearch, FiCheck, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 
 const STEPS = [
@@ -23,7 +24,7 @@ export default function NovaAnamnese() {
   const [selectedPaciente, setSelectedPaciente] = useState(null);
   const [newPaciente, setNewPaciente] = useState({
     nome: '', cpf: '', telefone: '', data_nascimento: '',
-    historico_saude: '', email: '',
+    genero: 'feminino', historico_saude: '', email: '',
   });
 
   // Step 2: Template
@@ -33,6 +34,8 @@ export default function NovaAnamnese() {
 
   // Step 3: Responses
   const [respostas, setRespostas] = useState({});
+  const [faceImageEdited, setFaceImageEdited] = useState(null);
+  const [faceEditorOpen, setFaceEditorOpen] = useState(false);
 
   // Step 4: Signature
   const [assinatura, setAssinatura] = useState(null);
@@ -62,6 +65,7 @@ export default function NovaAnamnese() {
     try {
       const res = await getModelo(modelo.id);
       setModeloCompleto(res.data);
+      setFaceImageEdited(null);
       // Initialize responses
       const initial = {};
       res.data.campos.forEach(c => {
@@ -146,6 +150,7 @@ export default function NovaAnamnese() {
           valor: valor,
         })),
         assinatura_base64: assinatura,
+        rosto_editado_base64: faceImageEdited || null,
       };
       const res = await criarAnamnese(payload);
       navigate(`/pacientes/${selectedPaciente.id}`);
@@ -290,6 +295,19 @@ export default function NovaAnamnese() {
     }
   };
 
+  const resolveFaceModelImage = () => {
+    if (!modeloCompleto?.rosto_modelo_tipo) return null;
+    if (modeloCompleto.rosto_modelo_tipo === 'positionsfem') {
+      return '/anamnese-modelos/positionsfem.png';
+    }
+    const genero = (selectedPaciente?.genero || newPaciente.genero || '').toLowerCase();
+    return genero === 'masculino'
+      ? '/anamnese-modelos/rostomasc.png'
+      : '/anamnese-modelos/rostofem.png';
+  };
+
+  const activeFaceImage = faceImageEdited || resolveFaceModelImage();
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
       {/* Header */}
@@ -416,6 +434,17 @@ export default function NovaAnamnese() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-dark/60 mb-1">Gênero *</label>
+                  <select
+                    value={newPaciente.genero}
+                    onChange={(e) => setNewPaciente({ ...newPaciente, genero: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl border border-secondary/50 bg-soft/30 focus:bg-white focus:border-accent focus:outline-none text-dark text-sm"
+                  >
+                    <option value="feminino">Feminino</option>
+                    <option value="masculino">Masculino</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-dark/60 mb-1">CPF *</label>
                   <input
                     type="text"
@@ -514,6 +543,27 @@ export default function NovaAnamnese() {
               Preenchimento — {modeloCompleto.nome_procedimento}
             </h2>
             <div className="space-y-5">
+              {modeloCompleto.rosto_modelo_tipo && activeFaceImage && (
+                <div>
+                  <label className="block text-sm font-medium text-dark/70 mb-2">
+                    Mapa Facial (toque para editar)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFaceEditorOpen(true)}
+                    className="w-full rounded-2xl border border-secondary/40 bg-soft/20 p-3 hover:border-accent/50 transition-all"
+                  >
+                    <img
+                      src={activeFaceImage}
+                      alt="Mapa facial"
+                      className="mx-auto max-h-[420px] w-auto object-contain rounded-xl"
+                    />
+                  </button>
+                  <p className="text-xs text-dark/40 mt-2">
+                    Clique para abrir em tela cheia e desenhar com mouse, touch ou caneta.
+                  </p>
+                </div>
+              )}
               {modeloCompleto.campos.map(campo => (
                 <div key={campo.id}>
                   <label className="block text-sm font-medium text-dark/70 mb-2">
@@ -541,6 +591,14 @@ export default function NovaAnamnese() {
           </div>
         )}
       </div>
+
+      <FacePaintModal
+        open={faceEditorOpen}
+        baseImageSrc={resolveFaceModelImage()}
+        initialImage={faceImageEdited}
+        onClose={() => setFaceEditorOpen(false)}
+        onSave={setFaceImageEdited}
+      />
 
       {/* Navigation */}
       <div className="flex items-center justify-between">

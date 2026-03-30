@@ -10,6 +10,7 @@ class Paciente(Base):
     nome = Column(String, nullable=False, index=True)
     cpf = Column(String(14), unique=True, nullable=False)
     telefone = Column(String(20), nullable=False)
+    genero = Column(String(10), nullable=False, default="feminino")  # masculino | feminino
     data_nascimento = Column(Date, nullable=False)
     historico_saude = Column(Text, nullable=True)
     endereco = Column(String, nullable=True)

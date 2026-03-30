@@ -30,6 +30,7 @@ export default function BuilderModelo() {
 
   const [nomeProcedimento, setNomeProcedimento] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [rostoModeloTipo, setRostoModeloTipo] = useState('');
   const [campos, setCampos] = useState([emptyField()]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export default function BuilderModelo() {
           const m = res.data;
           setNomeProcedimento(m.nome_procedimento);
           setDescricao(m.descricao || '');
+          setRostoModeloTipo(m.rosto_modelo_tipo || '');
           setCampos(m.campos.map(c => ({ ...c, _id: c.id || Date.now() + Math.random() })));
         })
         .catch(console.error)
@@ -126,6 +128,7 @@ export default function BuilderModelo() {
       const payload = {
         nome_procedimento: nomeProcedimento,
         descricao: descricao || null,
+        rosto_modelo_tipo: rostoModeloTipo || null,
         campos: campos.map((c, i) => ({
           tipo: c.tipo,
           label: c.label,
@@ -204,6 +207,36 @@ export default function BuilderModelo() {
             rows={2}
             className="w-full px-4 py-3 rounded-2xl border border-secondary/50 bg-soft/50 focus:bg-white focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all text-dark placeholder:text-dark/30 resize-none"
           />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-6 shadow-card space-y-4">
+        <h2 className="font-heading font-semibold text-dark">Rosto de Exemplo (opcional)</h2>
+        <p className="text-sm text-dark/50">
+          Selecione o tipo de modelo facial que deve aparecer no início do preenchimento da anamnese.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={() => setRostoModeloTipo(rostoModeloTipo === 'muscular' ? '' : 'muscular')}
+            className={`text-left rounded-2xl border p-3 transition-all ${
+              rostoModeloTipo === 'muscular' ? 'border-accent bg-accent/5' : 'border-secondary/30 hover:border-accent/30'
+            }`}
+          >
+            <p className="font-medium text-dark mb-2">Modelo Muscular (masc/fem automático)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <img src="/anamnese-modelos/rostomasc.png" alt="Rosto muscular masculino" className="w-full h-36 object-cover rounded-xl bg-soft/40" />
+              <img src="/anamnese-modelos/rostofem.png" alt="Rosto muscular feminino" className="w-full h-36 object-cover rounded-xl bg-soft/40" />
+            </div>
+          </button>
+          <button
+            onClick={() => setRostoModeloTipo(rostoModeloTipo === 'positionsfem' ? '' : 'positionsfem')}
+            className={`text-left rounded-2xl border p-3 transition-all ${
+              rostoModeloTipo === 'positionsfem' ? 'border-accent bg-accent/5' : 'border-secondary/30 hover:border-accent/30'
+            }`}
+          >
+            <p className="font-medium text-dark mb-2">Modelo Positions Feminino (fixo)</p>
+            <img src="/anamnese-modelos/positionsfem.png" alt="Positions feminino" className="w-full h-36 object-cover rounded-xl bg-soft/40" />
+          </button>
         </div>
       </div>
 

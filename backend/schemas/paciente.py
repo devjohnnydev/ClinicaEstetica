@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 from datetime import date, datetime
-from typing import Optional, List
+from typing import Optional, Literal
 
 
 class PacienteBase(BaseModel):
     nome: str
     cpf: str
     telefone: str
+    genero: Literal["masculino", "feminino"]
     data_nascimento: date
     historico_saude: Optional[str] = None
     endereco: Optional[str] = None
@@ -20,6 +21,7 @@ class PacienteCreate(PacienteBase):
 class PacienteUpdate(BaseModel):
     nome: Optional[str] = None
     telefone: Optional[str] = None
+    genero: Optional[Literal["masculino", "feminino"]] = None
     historico_saude: Optional[str] = None
     endereco: Optional[str] = None
     email: Optional[str] = None
@@ -39,6 +41,7 @@ class PacienteListResponse(BaseModel):
     nome: str
     cpf: str
     telefone: str
+    genero: Literal["masculino", "feminino"]
     created_at: Optional[datetime] = None
     total_anamneses: Optional[int] = 0
 

@@ -45,6 +45,7 @@ class AnamneseCreate(BaseModel):
     modelo_id: int
     respostas: List[RespostaCreate]
     assinatura_base64: str  # Base64 encoded signature
+    rosto_editado_base64: Optional[str] = None
 
 
 class AnexoDescricaoUpdate(BaseModel):
@@ -83,9 +84,11 @@ class AnamneseDetailResponse(BaseModel):
     modelo_id: int
     status: str
     observacoes: Optional[str] = None
+    rosto_editado_path: Optional[str] = None
     created_at: Optional[datetime] = None
     finalizada_at: Optional[datetime] = None
     paciente_nome: Optional[str] = None
+    paciente_genero: Optional[str] = None
     nome_procedimento: Optional[str] = None
     respostas: List[RespostaResponse] = []
     assinaturas: List[AssinaturaResponse] = []

@@ -22,6 +22,7 @@ def listar_modelos(
             id=m.id,
             nome_procedimento=m.nome_procedimento,
             descricao=m.descricao,
+            rosto_modelo_tipo=m.rosto_modelo_tipo,
             created_at=m.created_at,
             total_campos=len(m.campos),
         ))
@@ -37,6 +38,7 @@ def criar_modelo(
     db_modelo = ModeloAnamnese(
         nome_procedimento=modelo.nome_procedimento,
         descricao=modelo.descricao,
+        rosto_modelo_tipo=modelo.rosto_modelo_tipo,
     )
     db.add(db_modelo)
     db.flush()
@@ -59,6 +61,7 @@ def criar_modelo(
         id=db_modelo.id,
         nome_procedimento=db_modelo.nome_procedimento,
         descricao=db_modelo.descricao,
+        rosto_modelo_tipo=db_modelo.rosto_modelo_tipo,
         created_at=db_modelo.created_at,
         campos=[CampoModeloResponse.model_validate(c) for c in db_modelo.campos],
         total_campos=len(db_modelo.campos),
@@ -78,6 +81,7 @@ def obter_modelo(
         id=modelo.id,
         nome_procedimento=modelo.nome_procedimento,
         descricao=modelo.descricao,
+        rosto_modelo_tipo=modelo.rosto_modelo_tipo,
         created_at=modelo.created_at,
         campos=[CampoModeloResponse.model_validate(c) for c in modelo.campos],
         total_campos=len(modelo.campos),
@@ -99,6 +103,8 @@ def atualizar_modelo(
         modelo.nome_procedimento = data.nome_procedimento
     if data.descricao is not None:
         modelo.descricao = data.descricao
+    if "rosto_modelo_tipo" in data.model_dump(exclude_unset=True):
+        modelo.rosto_modelo_tipo = data.rosto_modelo_tipo
 
     if data.campos is not None:
         from models.anamnese import Resposta
@@ -147,6 +153,7 @@ def atualizar_modelo(
         id=modelo.id,
         nome_procedimento=modelo.nome_procedimento,
         descricao=modelo.descricao,
+        rosto_modelo_tipo=modelo.rosto_modelo_tipo,
         created_at=modelo.created_at,
         campos=[CampoModeloResponse.model_validate(c) for c in modelo.campos],
         total_campos=len(modelo.campos),

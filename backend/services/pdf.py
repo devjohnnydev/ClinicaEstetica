@@ -231,6 +231,7 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
             ["Nome", paciente.nome or "—"],
             ["CPF", paciente.cpf or "—"],
             ["Telefone", paciente.telefone or "—"],
+            ["Gênero", paciente.genero.capitalize() if paciente.genero else "—"],
             ["Data de Nascimento", str(paciente.data_nascimento) if paciente.data_nascimento else "—"],
         ]
         if paciente.historico_saude:
@@ -252,6 +253,20 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
 
     # ─── RESPONSES ───
     elements.append(Paragraph("Respostas da Anamnese", styles['SectionTitle']))
+
+    # Face paint image saved for this anamnese
+    if getattr(anamnese, "rosto_editado_path", None):
+        elements.append(Paragraph("Mapa Facial Editado", styles['FieldLabel']))
+        elements.append(Spacer(1, 2 * mm))
+        rosto_img = _get_image_flowable(anamnese.rosto_editado_path, db, width=12 * cm, height=12 * cm)
+        if rosto_img:
+            try:
+                elements.append(rosto_img)
+            except Exception:
+                elements.append(Paragraph("[Imagem do mapa facial indisponível]", styles['FieldValue']))
+        else:
+            elements.append(Paragraph("[Imagem do mapa facial indisponível]", styles['FieldValue']))
+        elements.append(Spacer(1, 4 * mm))
 
     for resp in anamnese.respostas:
         campo = resp.campo
