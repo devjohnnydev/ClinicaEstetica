@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiX, FiDollarSign, FiCreditCard, FiSmartphone, FiCheck, FiAlertTriangle, FiTag, FiPlus, FiEdit2, FiTrash2, FiInfo } from 'react-icons/fi';
 import {
   atualizarPagamento,
@@ -29,6 +29,7 @@ function dataBR(isoStr) {
 export function BarChart({ data, width = 500, height = 250 }) {
   if (!data || data.length === 0) return <div className="text-dark/40 text-sm text-center py-8">Sem dados</div>;
   const [tooltip, setTooltip] = useState(null);
+  const wrapperRef = useRef(null);
 
   const maxVal = Math.max(...data.flatMap(d => [d.receita || 0, d.gastos || 0]), 1);
   const barW = Math.min(24, (width - 60) / (data.length * 2.5));
@@ -36,8 +37,16 @@ export function BarChart({ data, width = 500, height = 250 }) {
   const chartH = height - 40;
   const chartW = width - 50;
 
+  const showTooltip = (e, label, value) => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    setTooltip({ x: localX, y: localY, label, value });
+  };
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
       {/* Y axis labels */}
       {[0, 0.25, 0.5, 0.75, 1].map(pct => {
@@ -68,7 +77,7 @@ export function BarChart({ data, width = 500, height = 250 }) {
               rx="3"
               fill="#C6A77D"
               opacity="0.9"
-              onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: `${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita`, value: formatMoney(d.receita) })}
+              onMouseMove={(e) => showTooltip(e, `${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita`, formatMoney(d.receita))}
               onMouseLeave={() => setTooltip(null)}
             >
               <animate attributeName="height" from="0" to={hRec} dur="0.6s" fill="freeze" />
@@ -82,7 +91,7 @@ export function BarChart({ data, width = 500, height = 250 }) {
               rx="3"
               fill="#E8D5C4"
               opacity="0.9"
-              onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: `${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos`, value: formatMoney(d.gastos) })}
+              onMouseMove={(e) => showTooltip(e, `${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos`, formatMoney(d.gastos))}
               onMouseLeave={() => setTooltip(null)}
             >
               <animate attributeName="height" from="0" to={hGas} dur="0.6s" fill="freeze" />
@@ -103,8 +112,8 @@ export function BarChart({ data, width = 500, height = 250 }) {
       </svg>
       {tooltip && (
         <div
-          className="fixed z-[10000] bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg"
-          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+          className="absolute z-50 bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg max-w-[180px]"
+          style={{ left: `clamp(8px, ${tooltip.x + 10}px, calc(100% - 188px))`, top: `clamp(8px, ${tooltip.y + 10}px, calc(100% - 56px))` }}
         >
           <div className="font-medium">{tooltip.label}</div>
           <div>{tooltip.value}</div>
@@ -117,6 +126,7 @@ export function BarChart({ data, width = 500, height = 250 }) {
 export function LineChart({ data, width = 500, height = 200 }) {
   if (!data || data.length === 0) return <div className="text-dark/40 text-sm text-center py-8">Sem dados</div>;
   const [tooltip, setTooltip] = useState(null);
+  const wrapperRef = useRef(null);
 
   const allVals = data.flatMap(d => [d.receita || 0, d.gastos || 0, d.lucro || 0]);
   const maxVal = Math.max(...allVals, 1);
@@ -131,8 +141,16 @@ export function LineChart({ data, width = 500, height = 200 }) {
   const makePath = (key) =>
     data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d[key] || 0)}`).join(' ');
 
+  const showTooltip = (e, label, value) => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    setTooltip({ x: localX, y: localY, label, value });
+  };
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
       {/* Grid */}
       {[0, 0.25, 0.5, 0.75, 1].map(pct => {
@@ -161,7 +179,7 @@ export function LineChart({ data, width = 500, height = 200 }) {
             cy={getY(d.receita || 0)}
             r="7"
             fill="transparent"
-            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: `${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita`, value: formatMoney(d.receita) })}
+            onMouseMove={(e) => showTooltip(e, `${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita`, formatMoney(d.receita))}
             onMouseLeave={() => setTooltip(null)}
           />
           <circle cx={getX(i)} cy={getY(d.receita || 0)} r="3.5" fill="#C6A77D" stroke="white" strokeWidth="1.5" />
@@ -170,7 +188,7 @@ export function LineChart({ data, width = 500, height = 200 }) {
             cy={getY(d.lucro || 0)}
             r="7"
             fill="transparent"
-            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: `${MESES_NOMES[(d.mes || i + 1) - 1]} - Lucro`, value: formatMoney(d.lucro) })}
+            onMouseMove={(e) => showTooltip(e, `${MESES_NOMES[(d.mes || i + 1) - 1]} - Lucro`, formatMoney(d.lucro))}
             onMouseLeave={() => setTooltip(null)}
           />
           <circle cx={getX(i)} cy={getY(d.lucro || 0)} r="3" fill="#A8874F" stroke="white" strokeWidth="1.5" />
@@ -179,7 +197,7 @@ export function LineChart({ data, width = 500, height = 200 }) {
             cy={getY(d.gastos || 0)}
             r="7"
             fill="transparent"
-            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: `${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos`, value: formatMoney(d.gastos) })}
+            onMouseMove={(e) => showTooltip(e, `${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos`, formatMoney(d.gastos))}
             onMouseLeave={() => setTooltip(null)}
           />
           <circle cx={getX(i)} cy={getY(d.gastos || 0)} r="3" fill="#E8D5C4" stroke="white" strokeWidth="1.5" />
@@ -199,8 +217,8 @@ export function LineChart({ data, width = 500, height = 200 }) {
       </svg>
       {tooltip && (
         <div
-          className="fixed z-[10000] bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg"
-          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+          className="absolute z-50 bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg max-w-[180px]"
+          style={{ left: `clamp(8px, ${tooltip.x + 10}px, calc(100% - 188px))`, top: `clamp(8px, ${tooltip.y + 10}px, calc(100% - 56px))` }}
         >
           <div className="font-medium">{tooltip.label}</div>
           <div>{tooltip.value}</div>
@@ -213,13 +231,22 @@ export function LineChart({ data, width = 500, height = 200 }) {
 export function DonutChart({ data, width = 260, height = 260 }) {
   if (!data || data.length === 0) return <div className="text-dark/40 text-sm text-center py-8">Sem dados</div>;
   const [tooltip, setTooltip] = useState(null);
+  const wrapperRef = useRef(null);
+  const showTooltip = (e, label, value) => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    setTooltip({ x: localX, y: localY, label, value });
+  };
+
 
   const total = data.reduce((s, d) => s + d.valor, 0) || 1;
   const cx = width / 2, cy = height / 2 - 10, r = 80, innerR = 50;
   let cumAngle = -Math.PI / 2;
 
   return (
-    <div className="flex flex-col items-center">
+    <div ref={wrapperRef} className="relative flex flex-col items-center">
       <svg viewBox={`0 0 ${width} ${height - 20}`} className="w-full h-auto" style={{ maxWidth: 260 }}>
         {data.map((d, i) => {
           const angle = (d.valor / total) * 2 * Math.PI;
@@ -245,7 +272,7 @@ export function DonutChart({ data, width = 260, height = 260 }) {
               d={path}
               fill={CHART_COLORS[i % CHART_COLORS.length]}
               opacity="0.85"
-              onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, label: d.categoria, value: formatMoney(d.valor) })}
+              onMouseMove={(e) => showTooltip(e, d.categoria, formatMoney(d.valor))}
               onMouseLeave={() => setTooltip(null)}
             />
           );
@@ -266,8 +293,8 @@ export function DonutChart({ data, width = 260, height = 260 }) {
       </div>
       {tooltip && (
         <div
-          className="fixed z-[10000] bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg"
-          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+          className="absolute z-50 bg-dark text-white text-xs rounded-lg px-2 py-1 pointer-events-none shadow-lg max-w-[180px]"
+          style={{ left: `clamp(8px, ${tooltip.x + 10}px, calc(100% - 188px))`, top: `clamp(8px, ${tooltip.y + 10}px, calc(100% - 56px))` }}
         >
           <div className="font-medium">{tooltip.label}</div>
           <div>{tooltip.value}</div>
