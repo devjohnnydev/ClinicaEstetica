@@ -21,7 +21,15 @@ import {
 import {
   StatCard, BarChart, LineChart, DonutChart,
   PaymentModal, ExpenseModal, ClientHistoryModal, CategoryManagerModal,
+  ConfirmModal,
 } from './FinanceiroComponents';
+
+// ─── Helper: formata data ISO para dd/mm/yyyy BR ─────────────────
+function dataBR(isoStr) {
+  if (!isoStr) return '—';
+  const [y, m, d] = isoStr.split('-');
+  return `${d}/${m}/${y}`;
+}
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const TABS = [
@@ -36,40 +44,40 @@ export default function GestaoFinanceira() {
   const [ano, setAno] = useState(new Date().getFullYear());
 
   return (
-    <div className="animate-fadeIn">
+    <div className="animate-fadeIn px-1 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-5">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-dark">💰 Gestão Financeira</h1>
-          <p className="text-dark/50 text-sm mt-1">Controle completo de caixa, receitas e despesas</p>
+          <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-dark">💰 Gestão Financeira</h1>
+          <p className="text-dark/50 text-xs sm:text-sm mt-0.5">Controle completo de caixa, receitas e despesas</p>
         </div>
 
         {/* Month selector */}
-        <div className="flex items-center gap-2 bg-white rounded-2xl px-3 py-2 shadow-card border border-primary/40">
-          <button onClick={() => { if (mes === 1) { setMes(12); setAno(a => a - 1); } else setMes(m => m - 1); }} className="text-dark/40 hover:text-accent transition">
+        <div className="flex items-center gap-2 bg-white rounded-2xl px-3 py-2 shadow-card border border-primary/40 self-start">
+          <button onClick={() => { if (mes === 1) { setMes(12); setAno(a => a - 1); } else setMes(m => m - 1); }} className="text-dark/40 hover:text-accent transition p-1">
             <FiChevronLeft size={18} />
           </button>
-          <span className="text-sm font-medium text-dark min-w-[120px] text-center">{MESES[mes - 1]} {ano}</span>
-          <button onClick={() => { if (mes === 12) { setMes(1); setAno(a => a + 1); } else setMes(m => m + 1); }} className="text-dark/40 hover:text-accent transition">
+          <span className="text-sm font-medium text-dark min-w-[110px] text-center">{MESES[mes - 1]} {ano}</span>
+          <button onClick={() => { if (mes === 12) { setMes(1); setAno(a => a + 1); } else setMes(m => m + 1); }} className="text-dark/40 hover:text-accent transition p-1">
             <FiChevronRight size={18} />
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-card border border-primary/40 mb-6">
+      <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-card border border-primary/40 mb-5">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
               tab === t.id
                 ? 'bg-gradient-to-r from-accent/10 to-secondary/20 text-accent shadow-sm'
                 : 'text-dark/50 hover:bg-primary/30'
             }`}
           >
-            <t.icon size={16} />
-            <span className="hidden sm:inline">{t.label}</span>
+            <t.icon size={15} />
+            {t.label}
           </button>
         ))}
       </div>
@@ -122,20 +130,20 @@ function DashboardTab({ mes, ano }) {
   if (!dash) return <div className="text-center py-12 text-dark/40">Erro ao carregar</div>;
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       {/* Alert bar */}
       {(dash.alertas.atrasados > 0 || dash.alertas.pendentes > 0) && (
-        <div className={`rounded-2xl p-4 ${dash.alertas.atrasados > 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'} flex items-center gap-3`}>
-          <FiAlertTriangle size={20} className={dash.alertas.atrasados > 0 ? 'text-red-500' : 'text-yellow-600'} />
-          <div className="flex-1">
+        <div className={`rounded-2xl p-3 sm:p-4 ${dash.alertas.atrasados > 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'} flex items-start sm:items-center gap-3`}>
+          <FiAlertTriangle size={18} className={`shrink-0 mt-0.5 sm:mt-0 ${dash.alertas.atrasados > 0 ? 'text-red-500' : 'text-yellow-600'}`} />
+          <div className="flex-1 min-w-0">
             {dash.alertas.atrasados > 0 && (
-              <p className="text-sm font-medium text-red-700">
+              <p className="text-xs sm:text-sm font-medium text-red-700">
                 🔴 {dash.alertas.atrasados} pagamento{dash.alertas.atrasados > 1 ? 's' : ''} atrasado{dash.alertas.atrasados > 1 ? 's' : ''}
               </p>
             )}
             {dash.alertas.pendentes > 0 && (
-              <p className="text-sm text-dark/60">
-                ⏳ {dash.alertas.pendentes} pendente{dash.alertas.pendentes > 1 ? 's' : ''} — Total: R$ {dash.alertas.valor_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              <p className="text-xs sm:text-sm text-dark/60">
+                ⏳ {dash.alertas.pendentes} pendente{dash.alertas.pendentes > 1 ? 's' : ''} — R$ {dash.alertas.valor_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             )}
           </div>
@@ -143,50 +151,48 @@ function DashboardTab({ mes, ano }) {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatCard icon={FiDollarSign} label="Receita do Mês" value={dash.receita_mes} variacao={dash.variacao_receita} />
         <StatCard icon={FiArrowUp} label="Gastos do Mês" value={dash.gastos_mes} variacao={dash.variacao_gastos} color="red" />
         <StatCard icon={FiTrendingUp} label="Lucro do Mês" value={dash.lucro_mes} variacao={dash.variacao_lucro} color={dash.lucro_mes >= 0 ? 'green' : 'red'} />
-        <StatCard icon={FiActivity} label="Receita Total (Fat.)" value={dash.receita_total} />
+        <StatCard icon={FiActivity} label="Receita Total" value={dash.receita_total} />
       </div>
 
       {/* Cash flow summary */}
       {caixa && (
-        <div className="bg-white rounded-2xl p-5 shadow-card border border-primary/40">
-          <h3 className="font-heading text-sm font-semibold text-dark mb-3 flex items-center gap-2">
-            <FiDollarSign size={16} className="text-accent" /> Controle de Caixa — {MESES[mes - 1]}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-primary/40">
+          <h3 className="font-heading text-xs sm:text-sm font-semibold text-dark mb-3 flex items-center gap-2">
+            <FiDollarSign size={15} className="text-accent" /> Controle de Caixa — {MESES[mes - 1]}
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <div className="text-center">
-              <p className="text-xs text-dark/50 mb-1">Entradas</p>
-              <p className="text-lg font-bold text-emerald-600">R$ {caixa.total_entradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] sm:text-xs text-dark/50 mb-1">Entradas</p>
+              <p className="text-sm sm:text-lg font-bold text-emerald-600">R$ {caixa.total_entradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-dark/50 mb-1">Saídas</p>
-              <p className="text-lg font-bold text-red-500">R$ {caixa.total_saidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] sm:text-xs text-dark/50 mb-1">Saídas</p>
+              <p className="text-sm sm:text-lg font-bold text-red-500">R$ {caixa.total_saidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-dark/50 mb-1">Saldo</p>
-              <p className={`text-lg font-bold ${caixa.saldo >= 0 ? 'text-accent' : 'text-red-500'}`}>R$ {caixa.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] sm:text-xs text-dark/50 mb-1">Saldo</p>
+              <p className={`text-sm sm:text-lg font-bold ${caixa.saldo >= 0 ? 'text-accent' : 'text-red-500'}`}>R$ {caixa.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Bar chart */}
-        <div className="bg-white rounded-2xl p-5 shadow-card border border-primary/40">
-          <h3 className="font-heading text-sm font-semibold text-dark mb-4 flex items-center gap-2">
-            <FiBarChart2 size={16} className="text-accent" /> Receita vs Gastos — {ano}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-primary/40">
+          <h3 className="font-heading text-xs sm:text-sm font-semibold text-dark mb-3 flex items-center gap-2">
+            <FiBarChart2 size={15} className="text-accent" /> Receita vs Gastos — {ano}
           </h3>
           {chartBar && <BarChart data={chartBar.dados} />}
         </div>
 
-        {/* Line chart */}
-        <div className="bg-white rounded-2xl p-5 shadow-card border border-primary/40">
-          <h3 className="font-heading text-sm font-semibold text-dark mb-4 flex items-center gap-2">
-            <FiActivity size={16} className="text-accent" /> Evolução Financeira
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-primary/40">
+          <h3 className="font-heading text-xs sm:text-sm font-semibold text-dark mb-3 flex items-center gap-2">
+            <FiActivity size={15} className="text-accent" /> Evolução Financeira
           </h3>
           {chartLine && <LineChart data={chartLine.dados} />}
         </div>
@@ -194,30 +200,30 @@ function DashboardTab({ mes, ano }) {
 
       {/* Donut */}
       {chartPie && chartPie.dados?.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-card border border-primary/40">
-          <h3 className="font-heading text-sm font-semibold text-dark mb-4 flex items-center gap-2">
-            <FiPieChart size={16} className="text-accent" /> Distribuição de Gastos — {MESES[mes - 1]}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-primary/40">
+          <h3 className="font-heading text-xs sm:text-sm font-semibold text-dark mb-3 flex items-center gap-2">
+            <FiPieChart size={15} className="text-accent" /> Distribuição de Gastos — {MESES[mes - 1]}
           </h3>
-          <div className="max-w-xs mx-auto">
+          <div className="max-w-[240px] mx-auto">
             <DonutChart data={chartPie.dados} />
           </div>
         </div>
       )}
 
-      {/* Comparison with previous month */}
-      <div className="bg-white rounded-2xl p-5 shadow-card border border-primary/40">
-        <h3 className="font-heading text-sm font-semibold text-dark mb-4">📅 Comparativo com Mês Anterior</h3>
-        <div className="grid grid-cols-3 gap-4">
+      {/* Comparison */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-primary/40">
+        <h3 className="font-heading text-xs sm:text-sm font-semibold text-dark mb-3">📅 Comparativo com Mês Anterior</h3>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {[
             { label: 'Receita', atual: dash.receita_mes, anterior: dash.receita_anterior, variacao: dash.variacao_receita },
             { label: 'Gastos', atual: dash.gastos_mes, anterior: dash.gastos_anterior, variacao: dash.variacao_gastos },
             { label: 'Lucro', atual: dash.lucro_mes, anterior: dash.lucro_anterior, variacao: dash.variacao_lucro },
           ].map(item => (
-            <div key={item.label} className="bg-soft rounded-xl p-4">
-              <p className="text-xs text-dark/50 mb-2">{item.label}</p>
-              <p className="text-lg font-bold text-dark">R$ {item.atual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              <p className="text-xs text-dark/40 mt-1">Anterior: R$ {item.anterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              <p className={`text-xs font-medium mt-1 ${item.variacao > 0 ? 'text-emerald-600' : item.variacao < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+            <div key={item.label} className="bg-soft rounded-xl p-3 sm:p-4">
+              <p className="text-[10px] sm:text-xs text-dark/50 mb-1">{item.label}</p>
+              <p className="text-sm sm:text-lg font-bold text-dark">R$ {item.atual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] sm:text-xs text-dark/40 mt-1 hidden sm:block">Anterior: R$ {item.anterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className={`text-[10px] sm:text-xs font-medium mt-0.5 ${item.variacao > 0 ? 'text-emerald-600' : item.variacao < 0 ? 'text-red-500' : 'text-gray-400'}`}>
                 {item.variacao > 0 ? '↑' : item.variacao < 0 ? '↓' : '–'} {Math.abs(item.variacao)}%
               </p>
             </div>
@@ -241,7 +247,7 @@ function EntradasTab({ mes, ano }) {
   const [busca, setBusca] = useState('');
   const [selectedPag, setSelectedPag] = useState(null);
   const [selectedCliente, setSelectedCliente] = useState(null);
-  const [viewMode, setViewMode] = useState('pagamentos'); // pagamentos | clientes
+  const [viewMode, setViewMode] = useState('pagamentos');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -287,7 +293,6 @@ function EntradasTab({ mes, ano }) {
     return c.nome?.toLowerCase().includes(busca.toLowerCase());
   });
 
-  // Stats
   const totalRecebido = pagamentos.filter(p => p.status === 'pago').reduce((s, p) => s + p.valor_pago, 0);
   const totalPendente = pagamentos.filter(p => p.status !== 'pago').reduce((s, p) => s + (p.valor_total - p.valor_pago), 0);
   const totalAtrasados = pagamentos.filter(p => p.status === 'atrasado').length;
@@ -295,36 +300,35 @@ function EntradasTab({ mes, ano }) {
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">Recebido</p>
-          <p className="text-lg font-bold text-emerald-600">R$ {totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">Recebido</p>
+          <p className="text-sm sm:text-lg font-bold text-emerald-600">R$ {totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">Pendente</p>
-          <p className="text-lg font-bold text-yellow-600">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">Pendente</p>
+          <p className="text-sm sm:text-lg font-bold text-yellow-600">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">Atrasados</p>
-          <p className={`text-lg font-bold ${totalAtrasados > 0 ? 'text-red-500' : 'text-dark'}`}>{totalAtrasados}</p>
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">Atrasados</p>
+          <p className={`text-sm sm:text-lg font-bold ${totalAtrasados > 0 ? 'text-red-500' : 'text-dark'}`}>{totalAtrasados}</p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-2">
+        <div className="relative">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-dark/30" size={16} />
           <input
             type="text"
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar por cliente ou procedimento..."
+            placeholder="Buscar cliente ou procedimento..."
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-primary focus:border-accent focus:ring-1 focus:ring-accent/30 outline-none text-sm"
           />
         </div>
 
         <div className="flex gap-2">
-          {/* View mode toggle */}
           <div className="flex bg-white rounded-xl border border-primary overflow-hidden">
             <button
               onClick={() => setViewMode('pagamentos')}
@@ -343,7 +347,7 @@ function EntradasTab({ mes, ano }) {
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-primary text-sm bg-white text-dark/70"
+            className="flex-1 px-3 py-2 rounded-xl border border-primary text-xs sm:text-sm bg-white text-dark/70"
           >
             <option value="todos">Todos</option>
             <option value="pendente">Pendentes</option>
@@ -357,12 +361,11 @@ function EntradasTab({ mes, ano }) {
       {loading ? (
         <div className="text-center py-12 text-dark/40 animate-pulse">Carregando pagamentos...</div>
       ) : viewMode === 'pagamentos' ? (
-        /* PAYMENTS LIST */
         <div className="space-y-2">
           {filteredPagamentos.length === 0 ? (
             <div className="text-center py-12 text-dark/40">
-              <FiDollarSign size={40} className="mx-auto mb-3 opacity-30" />
-              <p>Nenhum pagamento encontrado</p>
+              <FiDollarSign size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Nenhum pagamento encontrado</p>
             </div>
           ) : (
             filteredPagamentos.map(p => {
@@ -371,30 +374,28 @@ function EntradasTab({ mes, ano }) {
                 <div
                   key={p.id}
                   onClick={() => setSelectedPag(p)}
-                  className={`bg-white rounded-2xl p-4 shadow-card border cursor-pointer hover:shadow-hover transition-all duration-300 ${
+                  className={`bg-white rounded-2xl p-3 sm:p-4 shadow-card border cursor-pointer hover:shadow-hover transition-all duration-300 ${
                     p.status === 'atrasado' ? 'border-red-200 bg-red-50/30' : 'border-primary/40'
                   }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.status === 'atrasado' ? 'bg-red-100' : p.status === 'pago' ? 'bg-emerald-100' : 'bg-accent/10'}`}>
-                      <SIcon size={18} className={p.status === 'atrasado' ? 'text-red-500' : p.status === 'pago' ? 'text-emerald-600' : 'text-accent'} />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'atrasado' ? 'bg-red-100' : p.status === 'pago' ? 'bg-emerald-100' : 'bg-accent/10'}`}>
+                      <SIcon size={16} className={p.status === 'atrasado' ? 'text-red-500' : p.status === 'pago' ? 'text-emerald-600' : 'text-accent'} />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-dark truncate">{p.descricao}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-dark/40">
-                          {p.cliente?.nome || '—'} • {new Date(p.data_atendimento + 'T12:00:00').toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
+                      <p className="text-xs sm:text-sm font-medium text-dark truncate">{p.descricao}</p>
+                      <p className="text-[10px] sm:text-xs text-dark/40 truncate">
+                        {p.cliente?.nome || '—'} • {dataBR(p.data_atendimento)}
+                      </p>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-dark">R$ {p.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs sm:text-sm font-bold text-dark">R$ {p.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       {p.valor_pago > 0 && p.status !== 'pago' && (
-                        <p className="text-xs text-emerald-600">Pago: R$ {p.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-[10px] sm:text-xs text-emerald-600">Pago: R$ {p.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       )}
-                      <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[p.status]}`}>
+                      <span className={`inline-block mt-0.5 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium ${statusColor[p.status]}`}>
                         {p.status === 'atrasado' ? '🔴 ATRASADO' : p.status.toUpperCase()}
                       </span>
                     </div>
@@ -405,35 +406,34 @@ function EntradasTab({ mes, ano }) {
           )}
         </div>
       ) : (
-        /* CLIENTS VIEW */
         <div className="space-y-2">
           {filteredClientes.length === 0 ? (
             <div className="text-center py-12 text-dark/40">
-              <FiUser size={40} className="mx-auto mb-3 opacity-30" />
-              <p>Nenhum cliente encontrado</p>
+              <FiUser size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Nenhum cliente encontrado</p>
             </div>
           ) : (
             filteredClientes.map(c => (
               <div
                 key={c.id}
                 onClick={() => setSelectedCliente(c.id)}
-                className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 cursor-pointer hover:shadow-hover transition-all duration-300"
+                className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 cursor-pointer hover:shadow-hover transition-all duration-300"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/15 to-secondary/20 flex items-center justify-center">
-                    <FiUser size={18} className="text-accent" />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-accent/15 to-secondary/20 flex items-center justify-center shrink-0">
+                    <FiUser size={16} className="text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-dark">{c.nome}</p>
-                    <p className="text-xs text-dark/40">{c.total_atendimentos} atendimento{c.total_atendimentos !== 1 ? 's' : ''}</p>
+                    <p className="text-xs sm:text-sm font-medium text-dark truncate">{c.nome}</p>
+                    <p className="text-[10px] sm:text-xs text-dark/40">{c.total_atendimentos} atendimento{c.total_atendimentos !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-accent">R$ {c.total_gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xs sm:text-sm font-bold text-accent">R$ {c.total_gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     {c.pendente > 0 && (
-                      <p className="text-xs text-yellow-600">Pendente: R$ {c.pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-[10px] sm:text-xs text-yellow-600">Pend: R$ {c.pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     )}
                     {c.atrasados > 0 && (
-                      <span className="text-xs text-red-500 font-medium">🔴 {c.atrasados} atrasado{c.atrasados > 1 ? 's' : ''}</span>
+                      <span className="text-[10px] text-red-500 font-medium">🔴 {c.atrasados}</span>
                     )}
                   </div>
                 </div>
@@ -443,7 +443,6 @@ function EntradasTab({ mes, ano }) {
         </div>
       )}
 
-      {/* Modals */}
       {selectedPag && <PaymentModal pagamento={selectedPag} onClose={() => setSelectedPag(null)} onSaved={loadData} />}
       {selectedCliente && <ClientHistoryModal clienteId={selectedCliente} onClose={() => setSelectedCliente(null)} />}
     </div>
@@ -462,6 +461,7 @@ function GastosTab({ mes, ano }) {
   const [showNewExpense, setShowNewExpense] = useState(false);
   const [showCatManager, setShowCatManager] = useState(false);
   const [filterTipo, setFilterTipo] = useState('todos');
+  const [confirmParcela, setConfirmParcela] = useState(null); // { despId, parcela }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -492,16 +492,22 @@ function GastosTab({ mes, ano }) {
     }
   };
 
-  const handleToggleParcela = async (despId, parcela) => {
+  const handleConfirmParcela = async () => {
+    if (!confirmParcela) return;
+    const { despId, parcela } = confirmParcela;
     try {
+      // Usa data BR (fuso São Paulo)
+      const now = new Date();
+      const brDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
       await atualizarParcela(despId, parcela.id, {
         pago: !parcela.pago,
-        data_pagamento: !parcela.pago ? new Date().toISOString().split('T')[0] : null,
+        data_pagamento: !parcela.pago ? brDate : null,
       });
       loadData();
     } catch (err) {
       alert('Erro ao atualizar parcela');
     }
+    setConfirmParcela(null);
   };
 
   const totalClinica = despesas.filter(d => d.tipo === 'clinica').reduce((s, d) => s + d.valor_total, 0);
@@ -511,53 +517,56 @@ function GastosTab({ mes, ano }) {
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">🏥 Clínica</p>
-          <p className="text-lg font-bold text-accent">R$ {totalClinica.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">🏥 Clínica</p>
+          <p className="text-sm sm:text-lg font-bold text-accent">R$ {totalClinica.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">👤 Pessoal</p>
-          <p className="text-lg font-bold text-dark">R$ {totalPessoal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">👤 Pessoal</p>
+          <p className="text-sm sm:text-lg font-bold text-dark">R$ {totalPessoal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card border border-primary/40 text-center">
-          <p className="text-xs text-dark/50">Total</p>
-          <p className="text-lg font-bold text-red-500">R$ {totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-card border border-primary/40 text-center">
+          <p className="text-[10px] sm:text-xs text-dark/50">Total</p>
+          <p className="text-sm sm:text-lg font-bold text-red-500">R$ {totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <select
-          value={filterTipo}
-          onChange={e => setFilterTipo(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-primary text-sm bg-white text-dark/70"
-        >
-          <option value="todos">Todos os tipos</option>
-          <option value="clinica">🏥 Clínica</option>
-          <option value="pessoal">👤 Pessoal</option>
-        </select>
-        <div className="flex-1" />
-        <button
-          onClick={() => setShowCatManager(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary text-sm text-dark/60 hover:border-accent hover:text-accent transition"
-        >
-          <FiSettings size={14} /> Categorias
-        </button>
-        <button
-          onClick={() => setShowNewExpense(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-accent-dark text-white text-sm font-medium hover:shadow-lg transition"
-        >
-          <FiPlus size={16} /> Novo Gasto
-        </button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <select
+            value={filterTipo}
+            onChange={e => setFilterTipo(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-xl border border-primary text-xs sm:text-sm bg-white text-dark/70"
+          >
+            <option value="todos">Todos os tipos</option>
+            <option value="clinica">🏥 Clínica</option>
+            <option value="pessoal">👤 Pessoal</option>
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCatManager(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-primary text-xs sm:text-sm text-dark/60 hover:border-accent hover:text-accent transition"
+          >
+            <FiSettings size={14} /> Categorias
+          </button>
+          <button
+            onClick={() => setShowNewExpense(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-accent-dark text-white text-xs sm:text-sm font-medium hover:shadow-lg transition"
+          >
+            <FiPlus size={15} /> Novo Gasto
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-12 text-dark/40 animate-pulse">Carregando despesas...</div>
       ) : despesas.length === 0 ? (
         <div className="text-center py-12 text-dark/40">
-          <FiArrowUp size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Nenhuma despesa registrada neste mês</p>
+          <FiArrowUp size={36} className="mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Nenhuma despesa neste mês</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -565,49 +574,48 @@ function GastosTab({ mes, ano }) {
             const catIcon = d.categoria_rel?.icone || '📌';
             return (
               <div key={d.id} className="bg-white rounded-2xl shadow-card border border-primary/40 overflow-hidden">
-                <div className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-soft flex items-center justify-center text-lg shrink-0">
+                <div className="p-3 sm:p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-soft flex items-center justify-center text-base sm:text-lg shrink-0 mt-0.5">
                       {catIcon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-dark">{d.nome}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${d.tipo === 'clinica' ? 'bg-accent/10 text-accent' : 'bg-purple-100 text-purple-600'}`}>
-                          {d.tipo === 'clinica' ? '🏥 Clínica' : '👤 Pessoal'}
+                      <p className="text-xs sm:text-sm font-medium text-dark">{d.nome}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full ${d.tipo === 'clinica' ? 'bg-accent/10 text-accent' : 'bg-purple-100 text-purple-600'}`}>
+                          {d.tipo === 'clinica' ? '🏥' : '👤'} {d.tipo === 'clinica' ? 'Clínica' : 'Pessoal'}
                         </span>
-                        <span className="text-xs text-dark/40">{d.categoria_rel?.nome || d.categoria}</span>
-                        <span className="text-xs text-dark/30">•</span>
-                        <span className="text-xs text-dark/40">{new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                        <span className="text-[10px] sm:text-xs text-dark/40">{d.categoria_rel?.nome || d.categoria}</span>
+                        <span className="text-[10px] sm:text-xs text-dark/40">• {dataBR(d.data)}</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-dark">R$ {d.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs sm:text-sm font-bold text-dark">R$ {d.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       {d.parcelas_total > 1 && (
-                        <p className="text-xs text-dark/40">{d.parcelas_total}x de R$ {(d.valor_total / d.parcelas_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-[10px] sm:text-xs text-dark/40">{d.parcelas_total}x R$ {(d.valor_total / d.parcelas_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       )}
                     </div>
-                    <button onClick={() => handleDelete(d.id)} className="text-dark/20 hover:text-red-400 transition ml-1">
-                      <FiAlertTriangle size={14} />
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(d.id); }} className="text-dark/20 hover:text-red-400 transition shrink-0 mt-1">
+                      <FiAlertTriangle size={13} />
                     </button>
                   </div>
 
                   {/* Parcelas */}
                   {d.parcelas_total > 1 && d.parcelas?.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-primary/50">
-                      <p className="text-xs font-medium text-dark/50 mb-2">Parcelas</p>
+                      <p className="text-[10px] sm:text-xs font-medium text-dark/50 mb-2">Parcelas</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                         {d.parcelas.map(p => (
                           <button
                             key={p.id}
-                            onClick={() => handleToggleParcela(d.id, p)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all ${
+                            onClick={() => setConfirmParcela({ despId: d.id, parcela: p })}
+                            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-[10px] sm:text-xs transition-all ${
                               p.pago
                                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                                 : 'bg-white border-primary text-dark/60 hover:border-accent'
                             }`}
                           >
-                            {p.pago ? <FiCheckCircle size={12} /> : <FiClock size={12} />}
+                            {p.pago ? <FiCheckCircle size={11} /> : <FiClock size={11} />}
                             <span>{p.numero_parcela}/{d.parcelas_total}</span>
                             <span className="font-medium">R$ {p.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                           </button>
@@ -622,7 +630,21 @@ function GastosTab({ mes, ano }) {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Confirm parcela modal */}
+      {confirmParcela && (
+        <ConfirmModal
+          title={confirmParcela.parcela.pago ? 'Desmarcar Parcela' : 'Confirmar Pagamento'}
+          message={
+            confirmParcela.parcela.pago
+              ? `Deseja desmarcar a parcela ${confirmParcela.parcela.numero_parcela} como não paga?`
+              : `Confirmar pagamento da parcela ${confirmParcela.parcela.numero_parcela} no valor de R$ ${confirmParcela.parcela.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}?`
+          }
+          confirmLabel={confirmParcela.parcela.pago ? 'Desmarcar' : 'Confirmar Pagamento'}
+          onConfirm={handleConfirmParcela}
+          onCancel={() => setConfirmParcela(null)}
+        />
+      )}
+
       {showNewExpense && <ExpenseModal onClose={() => setShowNewExpense(false)} onSaved={loadData} categorias={categorias} />}
       {showCatManager && <CategoryManagerModal onClose={() => setShowCatManager(false)} onSaved={loadData} />}
     </div>
