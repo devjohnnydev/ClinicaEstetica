@@ -19,11 +19,14 @@ from models.profissional import Profissional, ProfissionalServico
 from models.agendamento import Agendamento
 from models.bloqueio_horario import BloqueioHorario
 from models.lista_espera import ListaEspera
+from models.pagamento import Pagamento
+from models.despesa import Despesa, ParcelaDespesa, CategoriaDespesa
 from services.auth import get_password_hash, get_current_user
 from services.pdf import generate_anamnese_pdf
 
 from routers import auth, pacientes, modelos, anamneses
 from routers import agenda as agenda_router
+from routers import financeiro as financeiro_router
 
 # Create all tables (including new agenda tables)
 Base.metadata.create_all(bind=engine)
@@ -53,6 +56,7 @@ app.include_router(pacientes.router)
 app.include_router(modelos.router)
 app.include_router(anamneses.router)
 app.include_router(agenda_router.router)
+app.include_router(financeiro_router.router)
 
 
 @app.get("/uploads/{subdir}/{filename}")
@@ -193,6 +197,53 @@ def run_migrations_and_seed():
         # Backfill required default for existing patients
         db.execute(text("UPDATE pacientes SET genero='feminino' WHERE genero IS NULL"))
         db.commit()
+
+        # ── Seed default expense categories ──────────────────────────
+        default_cats = [
+            ("Aluguel", "clinica", "🏠"),
+            ("Equipamentos", "clinica", "🛠️"),
+            ("Produtos", "clinica", "🧴"),
+            ("Funcionários", "clinica", "👥"),
+            ("Marketing", "clinica", "📣"),
+            ("Manutenção", "clinica", "🔧"),
+            ("Uber/Transporte", "pessoal", "🚗"),
+            ("Alimentação", "pessoal", "🍽️"),
+            ("Compras Pessoais", "pessoal", "🛍️"),
+            ("Saúde", "pessoal", "🏥"),
+            ("Outros", "clinica", "📌"),
+        ]
+        for nome, tipo, icone in default_cats:
+            exists = db.query(CategoriaDespesa).filter(CategoriaDespesa.nome == nome).first()
+            if not exists:
+                db.add(CategoriaDespesa(nome=nome, tipo=tipo, icone=icone))
+        db.commit()
+
+        # ── Create retroactive payments for existing appointments ──
+        from models.agendamento import Agendamento
+        from models.servico import Servico
+        from models.agenda_cliente import AgendaCliente
+        agendamentos_sem_pag = db.query(Agendamento).filter(
+            ~Agendamento.id.in_(
+                db.query(Pagamento.agendamento_id).filter(Pagamento.agendamento_id.isnot(None))
+            ),
+            Agendamento.status.notin_(["cancelado"]),
+        ).all()
+        for ag in agendamentos_sem_pag:
+            servico = db.query(Servico).filter(Servico.id == ag.servico_id).first()
+            cliente = db.query(AgendaCliente).filter(AgendaCliente.id == ag.agenda_cliente_id).first()
+            if servico and cliente:
+                pag = Pagamento(
+                    agendamento_id=ag.id,
+                    agenda_cliente_id=ag.agenda_cliente_id,
+                    descricao=f"{servico.nome} - {cliente.nome}",
+                    valor_total=servico.preco,
+                    valor_pago=0.0,
+                    status="pendente",
+                    data_atendimento=ag.data,
+                )
+                db.add(pag)
+        db.commit()
+        print("  ✅ Pagamentos retroativos criados")
     finally:
         db.close()
 

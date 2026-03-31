@@ -23,3 +23,4 @@ class Agendamento(Base):
     cliente = relationship("AgendaCliente", back_populates="agendamentos", lazy="joined")
     servico = relationship("Servico", back_populates="agendamentos", lazy="joined")
     profissional = relationship("Profissional", back_populates="agendamentos", lazy="joined")
+    pagamento = relationship("Pagamento", back_populates="agendamento", uselist=False, cascade="all, delete-orphan", lazy="joined")

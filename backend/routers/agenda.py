@@ -14,6 +14,7 @@ from models.profissional import Profissional, ProfissionalServico
 from models.agendamento import Agendamento
 from models.bloqueio_horario import BloqueioHorario
 from models.lista_espera import ListaEspera
+from models.pagamento import Pagamento
 from services.auth import get_current_user
 from schemas.agenda import (
     AgendaClienteCreate, AgendaClienteUpdate, AgendaClienteResponse,
@@ -208,6 +209,19 @@ def criar_agendamento(
         observacoes=payload.observacoes,
     )
     db.add(ag)
+    db.flush()
+
+    # Auto-create pending payment
+    pagamento = Pagamento(
+        agendamento_id=ag.id,
+        agenda_cliente_id=payload.agenda_cliente_id,
+        descricao=f"{servico.nome} - {cliente.nome}",
+        valor_total=servico.preco,
+        valor_pago=0.0,
+        status="pendente",
+        data_atendimento=payload.data,
+    )
+    db.add(pagamento)
     db.commit()
     db.refresh(ag)
     return ag
@@ -277,6 +291,12 @@ def cancelar_agendamento(
     if ag.status == "cancelado":
         raise HTTPException(400, "Agendamento já está cancelado")
     ag.status = "cancelado"
+
+    # Delete associated payment
+    pag = db.query(Pagamento).filter(Pagamento.agendamento_id == ag.id).first()
+    if pag:
+        db.delete(pag)
+
     db.commit()
     db.refresh(ag)
     return ag

@@ -10,6 +10,7 @@ import BuilderModelo from './pages/BuilderModelo';
 import NovaAnamnese from './pages/NovaAnamnese';
 import VisualizarAnamnese from './pages/VisualizarAnamnese';
 import Agenda from './pages/Agenda';
+import GestaoFinanceira from './pages/financeiro/GestaoFinanceira';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -40,6 +41,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="agenda" element={<Agenda />} />
+        <Route path="financeiro" element={<GestaoFinanceira />} />
         <Route path="pacientes" element={<Pacientes />} />
         <Route path="pacientes/:id" element={<PastaPaciente />} />
         <Route path="modelos" element={<ModelosAnamnese />} />

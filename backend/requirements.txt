@@ -3,7 +3,6 @@ uvicorn[standard]
 sqlalchemy
 python-jose[cryptography]
 passlib[bcrypt]
-bcrypt==3.2.2
 python-multipart
 pydantic[email]
 email-validator
@@ -12,5 +11,6 @@ aiofiles
 reportlab
 pillow
 pytz
+python-dateutil
 psycopg2-binary
 gunicorn

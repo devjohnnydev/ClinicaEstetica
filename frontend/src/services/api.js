@@ -116,4 +116,38 @@ export const getAgendaDashboard = () => api.get('/api/agenda/dashboard');
 export const getAniversariantes = (mes) => api.get('/api/agenda/aniversariantes', { params: { mes } });
 export const getPendentesConfirmacao = () => api.get('/api/agenda/pendentes-confirmacao');
 
+// ─── Financeiro ─────────────────────────────────────────────────
+// Dashboard
+export const getFinanceiroDashboard = (params) => api.get('/api/financeiro/dashboard', { params });
+
+// Pagamentos
+export const getPagamentos = (params) => api.get('/api/financeiro/pagamentos', { params });
+export const getPagamento = (id) => api.get(`/api/financeiro/pagamentos/${id}`);
+export const atualizarPagamento = (id, data) => api.put(`/api/financeiro/pagamentos/${id}`, data);
+
+// Histórico de cliente
+export const getHistoricoCliente = (id) => api.get(`/api/financeiro/clientes/${id}/historico`);
+export const getClientesFinanceiro = (busca) => api.get('/api/financeiro/clientes-financeiro', { params: { busca } });
+
+// Despesas
+export const getDespesas = (params) => api.get('/api/financeiro/despesas', { params });
+export const criarDespesa = (data) => api.post('/api/financeiro/despesas', data);
+export const atualizarDespesa = (id, data) => api.put(`/api/financeiro/despesas/${id}`, data);
+export const deletarDespesa = (id) => api.delete(`/api/financeiro/despesas/${id}`);
+export const atualizarParcela = (despId, parcelaId, data) => api.put(`/api/financeiro/despesas/${despId}/parcelas/${parcelaId}`, data);
+
+// Categorias de despesa
+export const getCategoriasDespesa = (params) => api.get('/api/financeiro/categorias', { params });
+export const criarCategoriaDespesa = (data) => api.post('/api/financeiro/categorias', data);
+export const atualizarCategoriaDespesa = (id, data) => api.put(`/api/financeiro/categorias/${id}`, data);
+export const deletarCategoriaDespesa = (id) => api.delete(`/api/financeiro/categorias/${id}`);
+
+// Caixa
+export const getCaixa = (params) => api.get('/api/financeiro/caixa', { params });
+
+// Gráficos
+export const getGraficoReceitaGastos = (params) => api.get('/api/financeiro/graficos/receita-gastos', { params });
+export const getGraficoEvolucao = (params) => api.get('/api/financeiro/graficos/evolucao', { params });
+export const getGraficoDistribuicao = (params) => api.get('/api/financeiro/graficos/distribuicao-gastos', { params });
+
 export default api;
