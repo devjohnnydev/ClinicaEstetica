@@ -31,6 +31,16 @@ function dataBR(isoStr) {
   return `${d}/${m}/${y}`;
 }
 
+function diasDesde(isoStr) {
+  if (!isoStr) return 0;
+  const [y, m, d] = isoStr.split('-').map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const now = new Date();
+  dt.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+  return Math.floor((now - dt) / (1000 * 60 * 60 * 24));
+}
+
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const TABS = [
   { id: 'dashboard', icon: FiBarChart2, label: 'Dashboard' },
@@ -370,17 +380,20 @@ function EntradasTab({ mes, ano }) {
           ) : (
             filteredPagamentos.map(p => {
               const SIcon = statusIcon[p.status] || FiClock;
+              const alertaSemana = p.status !== 'pago' && diasDesde(p.data_atendimento) >= 7;
               return (
                 <div
                   key={p.id}
                   onClick={() => setSelectedPag(p)}
                   className={`bg-white rounded-2xl p-3 sm:p-4 shadow-card border cursor-pointer hover:shadow-hover transition-all duration-300 ${
-                    p.status === 'atrasado' ? 'border-red-200 bg-red-50/30' : 'border-primary/40'
+                    p.status === 'atrasado' || alertaSemana ? 'border-red-200 bg-red-50/30' : 'border-primary/40'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'atrasado' ? 'bg-red-100' : p.status === 'pago' ? 'bg-emerald-100' : 'bg-accent/10'}`}>
-                      <SIcon size={16} className={p.status === 'atrasado' ? 'text-red-500' : p.status === 'pago' ? 'text-emerald-600' : 'text-accent'} />
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      p.status === 'atrasado' || alertaSemana ? 'bg-red-100' : p.status === 'pago' ? 'bg-emerald-100' : 'bg-accent/10'
+                    }`}>
+                      <SIcon size={16} className={p.status === 'atrasado' || alertaSemana ? 'text-red-500' : p.status === 'pago' ? 'text-emerald-600' : 'text-accent'} />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -398,6 +411,11 @@ function EntradasTab({ mes, ano }) {
                       <span className={`inline-block mt-0.5 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium ${statusColor[p.status]}`}>
                         {p.status === 'atrasado' ? '🔴 ATRASADO' : p.status.toUpperCase()}
                       </span>
+                      {alertaSemana && p.status !== 'atrasado' && (
+                        <span className="inline-block mt-1 ml-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-600 border border-red-200">
+                          ALERTA +7 DIAS
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

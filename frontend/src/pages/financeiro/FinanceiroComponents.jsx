@@ -15,6 +15,10 @@ import {
 const CHART_COLORS = ['#C6A77D', '#E8D5C4', '#A8874F', '#D4B896', '#8B7355', '#F5EDE6', '#b8956a', '#d4c4b0'];
 const MESES_NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
+function formatMoney(value) {
+  return `R$ ${(Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+}
+
 // Helper to convert yyyy-mm-dd to dd/mm/yyyy
 function dataBR(isoStr) {
   if (!isoStr) return '—';
@@ -57,10 +61,12 @@ export function BarChart({ data, width = 500, height = 250 }) {
             <rect x={x} y={10 + chartH - hRec} width={barW} height={hRec} rx="3" fill="#C6A77D" opacity="0.9">
               <animate attributeName="height" from="0" to={hRec} dur="0.6s" fill="freeze" />
               <animate attributeName="y" from={10 + chartH} to={10 + chartH - hRec} dur="0.6s" fill="freeze" />
+              <title>{`${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita: ${formatMoney(d.receita)}`}</title>
             </rect>
             <rect x={x + barW + gap} y={10 + chartH - hGas} width={barW} height={hGas} rx="3" fill="#E8D5C4" opacity="0.9">
               <animate attributeName="height" from="0" to={hGas} dur="0.6s" fill="freeze" />
               <animate attributeName="y" from={10 + chartH} to={10 + chartH - hGas} dur="0.6s" fill="freeze" />
+              <title>{`${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos: ${formatMoney(d.gastos)}`}</title>
             </rect>
             <text x={x + barW + gap / 2} y={height - 5} textAnchor="middle" fill="#999" fontSize="9">
               {MESES_NOMES[(d.mes || i + 1) - 1]}
@@ -118,8 +124,15 @@ export function LineChart({ data, width = 500, height = 200 }) {
       {/* Dots */}
       {data.map((d, i) => (
         <g key={i}>
-          <circle cx={getX(i)} cy={getY(d.receita || 0)} r="3.5" fill="#C6A77D" stroke="white" strokeWidth="1.5" />
-          <circle cx={getX(i)} cy={getY(d.lucro || 0)} r="3" fill="#A8874F" stroke="white" strokeWidth="1.5" />
+          <circle cx={getX(i)} cy={getY(d.receita || 0)} r="3.5" fill="#C6A77D" stroke="white" strokeWidth="1.5">
+            <title>{`${MESES_NOMES[(d.mes || i + 1) - 1]} - Receita: ${formatMoney(d.receita)}`}</title>
+          </circle>
+          <circle cx={getX(i)} cy={getY(d.lucro || 0)} r="3" fill="#A8874F" stroke="white" strokeWidth="1.5">
+            <title>{`${MESES_NOMES[(d.mes || i + 1) - 1]} - Lucro: ${formatMoney(d.lucro)}`}</title>
+          </circle>
+          <circle cx={getX(i)} cy={getY(d.gastos || 0)} r="3" fill="#E8D5C4" stroke="white" strokeWidth="1.5">
+            <title>{`${MESES_NOMES[(d.mes || i + 1) - 1]} - Gastos: ${formatMoney(d.gastos)}`}</title>
+          </circle>
           <text x={getX(i)} y={height - 5} textAnchor="middle" fill="#999" fontSize="9">
             {MESES_NOMES[(d.mes || i + 1) - 1]}
           </text>
@@ -165,7 +178,11 @@ export function DonutChart({ data, width = 260, height = 260 }) {
 
           const path = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2} Z`;
 
-          return <path key={i} d={path} fill={CHART_COLORS[i % CHART_COLORS.length]} opacity="0.85" />;
+          return (
+            <path key={i} d={path} fill={CHART_COLORS[i % CHART_COLORS.length]} opacity="0.85">
+              <title>{`${d.categoria}: ${formatMoney(d.valor)}`}</title>
+            </path>
+          );
         })}
         <text x={cx} y={cy - 4} textAnchor="middle" fill="#3A3A3A" fontSize="13" fontWeight="600">
           R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
