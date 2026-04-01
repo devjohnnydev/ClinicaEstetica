@@ -51,6 +51,7 @@ export default function Agenda() {
   const [showEspera, setShowEspera] = useState(false);
   const [showAniversariantesModal, setShowAniversariantesModal] = useState(false);
   const [prefilledData, setPrefilledData] = useState(null);  // from waiting list
+  const [globalBlockAlert, setGlobalBlockAlert] = useState(null); // clicked global block info
 
   const slotH = ZOOM_OPTIONS.find(z => z.value === zoom)?.slotH || 72;
 
@@ -106,6 +107,19 @@ export default function Agenda() {
   };
 
   const openNew = (date, time) => {
+    // Check if the clicked time falls within a global block
+    if (time && bloqueiosGlobais.length > 0) {
+      const clickMin = timeToMin(time);
+      const blocked = bloqueiosGlobais.find(bg => {
+        const bgStart = timeToMin(bg.hora_inicio?.slice(0, 5));
+        const bgEnd = timeToMin(bg.hora_fim?.slice(0, 5));
+        return clickMin >= bgStart && clickMin < bgEnd;
+      });
+      if (blocked) {
+        setGlobalBlockAlert(blocked);
+        return; // Don't open new appointment
+      }
+    }
     setNewInitDate(date || fmtDate(currentDate));
     setNewInitTime(time || '');
     setShowNew(true);
@@ -274,11 +288,13 @@ export default function Agenda() {
           {view === 'dia' && (
             <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais} slotH={slotH} zoom={zoom}
               onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
-              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
+              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }}
+              onClickGlobalBlock={setGlobalBlockAlert} />
           )}
           {view === 'semana' && (
             <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais} slotH={slotH} zoom={zoom}
-              onClickSlot={(d, t) => openNew(d, t)} onClickEvent={setShowDetails} />
+              onClickSlot={(d, t) => openNew(d, t)} onClickEvent={setShowDetails}
+              onClickGlobalBlock={setGlobalBlockAlert} />
           )}
           {view === 'mes' && (
             <MonthView date={currentDate} agendamentos={agendamentos}
@@ -289,7 +305,8 @@ export default function Agenda() {
             <ProfessionalView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais}
               profissionais={profissionais} slotH={slotH} zoom={zoom}
               onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
-              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
+              onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }}
+              onClickGlobalBlock={setGlobalBlockAlert} />
           )}
         </div>
       )}
@@ -297,7 +314,7 @@ export default function Agenda() {
       {tab === 'clientes' && <ClientesTab />}
       {tab === 'procedimentos' && <ProcedimentosTab defaultSubTab={procSubTab} />}
 
-      <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} bloqueios={bloqueios} />
+      <NovoAgendamentoModal open={showNew} onClose={() => { setShowNew(false); setPrefilledData(null); }} onSave={loadAll} initialDate={newInitDate} initialTime={newInitTime} prefilledData={prefilledData} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais} />
       <DetalhesAgendamentoModal open={!!showDetails} onClose={() => setShowDetails(null)} agendamento={showDetails} onUpdate={loadAll} />
       <BloqueioModal open={showBloqueio} onClose={() => { setShowBloqueio(false); setEditBloqueio(null); }} onSave={loadAll} profissionais={profissionais} bloqueio={editBloqueio} />
       <ListaEsperaModal open={showEspera} onClose={() => setShowEspera(false)} onSave={loadAll} />
@@ -315,6 +332,36 @@ export default function Agenda() {
               </div>
             </div>
           ))}
+        </div>
+      </Modal>
+
+      {/* Global Block Alert Modal */}
+      <Modal open={!!globalBlockAlert} onClose={() => setGlobalBlockAlert(null)} title="⛔ Horário Bloqueado">
+        <div className="space-y-4">
+          <div className="p-4 bg-red-50 rounded-2xl border border-red-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                <FiGlobe size={20} className="text-red-500" />
+              </div>
+              <div>
+                <p className="font-heading font-semibold text-red-700">Bloqueio Global Ativo</p>
+                <p className="text-xs text-red-500 mt-0.5">Este horário está bloqueado para todos os profissionais</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <p className="text-[10px] text-dark/40 uppercase font-semibold">Horário</p>
+                <p className="text-sm font-semibold text-dark mt-0.5">{globalBlockAlert?.hora_inicio?.slice(0,5)} — {globalBlockAlert?.hora_fim?.slice(0,5)}</p>
+              </div>
+              <div className="p-3 bg-white rounded-xl">
+                <p className="text-[10px] text-dark/40 uppercase font-semibold">Motivo</p>
+                <p className="text-sm font-medium text-dark mt-0.5">{globalBlockAlert?.motivo || 'Sem motivo informado'}</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-dark/50 text-center">
+            Não é possível agendar consultas neste horário. Para remover o bloqueio, acesse <strong>Bloquear → Bloqueio Global</strong>.
+          </p>
         </div>
       </Modal>
     </div>
@@ -367,7 +414,7 @@ function EventCard({ ag, onClick, compact }) {
    ═══════════════════════════════════════════════════════════ */
 function buildSlots(zoom) {
   const slots = [];
-  for (let h = 6; h <= 22; h++) {
+  for (let h = 6; h <= 23; h++) {
     for (let m = 0; m < 60; m += zoom) {
       slots.push({ h, m, label: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` });
     }
@@ -378,7 +425,7 @@ function buildSlots(zoom) {
 /* ═══════════════════════════════════════════════════════════
    DAY VIEW  — proportional, zoomable
    ═══════════════════════════════════════════════════════════ */
-function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
+function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent, onClickBlock, onClickGlobalBlock }) {
   const dateStr = fmtDate(date);
   const dayAgs = agendamentos.filter(a => a.data === dateStr && a.status !== 'cancelado');
   const dayBloqs = bloqueios.filter(b => b.data === dateStr);
@@ -408,8 +455,9 @@ function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, 
           const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 20);
           return (
             <div key={`gb-${bg.id}`}
-              className="absolute right-2 bg-red-50/80 border border-dashed border-red-300/60 rounded-xl flex items-start p-1.5 sm:p-2 pointer-events-none z-[1]"
-              style={{ top, height: h, left: '3rem' }}>
+              className="absolute right-2 bg-red-50/90 border border-dashed border-red-300/80 rounded-xl flex items-start p-1.5 sm:p-2 pointer-events-auto cursor-pointer z-[3] hover:bg-red-100/90 transition-colors"
+              style={{ top, height: h, left: '3rem' }}
+              onClick={(e) => { e.stopPropagation(); onClickGlobalBlock && onClickGlobalBlock(bg); }}>
               <FiGlobe size={11} className="text-red-400 mr-1 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[10px] font-semibold text-red-400">Bloqueio Global</p>
@@ -456,7 +504,7 @@ function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, 
 /* ═══════════════════════════════════════════════════════════
    WEEK VIEW
    ═══════════════════════════════════════════════════════════ */
-function WeekView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent }) {
+function WeekView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent, onClickGlobalBlock }) {
   const weekStart = startOfWeek(date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const slots = buildSlots(zoom);
@@ -497,13 +545,14 @@ function WeekView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH,
             const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 16);
             return days.map((d, di) => (
               <div key={`gb-${bg.id}-${di}`}
-                className="absolute bg-red-50/60 border border-dashed border-red-200/50 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                className="absolute bg-red-50/80 border border-dashed border-red-300/60 rounded-lg flex items-center justify-center pointer-events-auto cursor-pointer z-[3] hover:bg-red-100/80 transition-colors"
                 style={{
                   top, height: h,
                   left: `calc(48px + ${di} * ((100% - 48px) / 7) + 1px)`,
                   width: `calc((100% - 48px) / 7 - 2px)`,
-                }}>
-                <FiGlobe size={9} className="text-red-300" />
+                }}
+                onClick={(e) => { e.stopPropagation(); onClickGlobalBlock && onClickGlobalBlock(bg); }}>
+                <FiGlobe size={9} className="text-red-400" />
               </div>
             ));
           })}
@@ -531,7 +580,7 @@ function WeekView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH,
 /* ═══════════════════════════════════════════════════════════
    PROFESSIONAL VIEW — one column per professional
    ═══════════════════════════════════════════════════════════ */
-function ProfessionalView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], profissionais, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
+function ProfessionalView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], profissionais, slotH, zoom, onClickSlot, onClickEvent, onClickBlock, onClickGlobalBlock }) {
   const dateStr = fmtDate(date);
   const profs = profissionais.filter(p => p.ativo !== false);
   const slots = buildSlots(zoom);
@@ -582,13 +631,14 @@ function ProfessionalView({ date, agendamentos, bloqueios, bloqueiosGlobais = []
             const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 16);
             return profs.map((p, pi) => (
               <div key={`gb-${bg.id}-${pi}`}
-                className="absolute bg-red-50/60 border border-dashed border-red-200/50 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                className="absolute bg-red-50/80 border border-dashed border-red-300/60 rounded-lg flex items-center justify-center pointer-events-auto cursor-pointer z-[3] hover:bg-red-100/80 transition-colors"
                 style={{
                   top, height: h,
                   left: `calc(48px + ${pi} * ((100% - 48px) / ${colCount}) + 1px)`,
                   width: `calc((100% - 48px) / ${colCount} - 2px)`,
-                }}>
-                <FiGlobe size={9} className="text-red-300" />
+                }}
+                onClick={(e) => { e.stopPropagation(); onClickGlobalBlock && onClickGlobalBlock(bg); }}>
+                <FiGlobe size={9} className="text-red-400" />
               </div>
             ));
           })}

@@ -6,6 +6,7 @@ import {
   cancelarAgendamento, naoCompareceu, concluirAgendamento, confirmarAgendamento,
   emAtendimento, criarBloqueio, criarListaEspera, deletarBloqueio,
   getBloqueiosGlobais, criarBloqueioGlobal, atualizarBloqueioGlobal, deletarBloqueioGlobal,
+  deletarListaEspera,
 } from '../../services/api';
 
 function timeToMin(t) { if (!t) return 0; const p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
@@ -212,9 +213,9 @@ function MultiTimePicker({ selectedTimes, onChange }) {
     }
   };
 
-  // Quick time buttons 06:00-22:00
+  // Quick time buttons 06:00-23:00
   const quickTimes = [];
-  for (let h = 6; h <= 22; h++) {
+  for (let h = 6; h <= 23; h++) {
     quickTimes.push(`${String(h).padStart(2, '0')}:00`);
   }
 
@@ -258,7 +259,7 @@ function MultiTimePicker({ selectedTimes, onChange }) {
 /* ══════════════════════════════════════════════════════════════════
    NEW APPOINTMENT MODAL
    ══════════════════════════════════════════════════════════════════ */
-export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime, prefilledData, bloqueios = [] }) {
+export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initialTime, prefilledData, bloqueios = [], bloqueiosGlobais = [] }) {
   const [clients, setClients] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [profissionais, setProfissionais] = useState([]);
@@ -324,6 +325,19 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
     if (form.hora_inicio) {
        const formStart = timeToMin(form.hora_inicio);
        const formEnd = form.hora_fim ? timeToMin(form.hora_fim) : formStart + 15;
+
+       // Check global blocks first
+       const globalConflict = bloqueiosGlobais.find(bg => {
+         const bgStart = timeToMin(bg.hora_inicio?.slice(0,5));
+         const bgEnd = timeToMin(bg.hora_fim?.slice(0,5));
+         return Math.max(formStart, bgStart) < Math.min(formEnd, bgEnd);
+       });
+       if (globalConflict) {
+         setError(`Horário bloqueado globalmente (${globalConflict.hora_inicio?.slice(0,5)}–${globalConflict.hora_fim?.slice(0,5)}). ${globalConflict.motivo || 'Não é possível agendar neste horário.'}`);
+         return;
+       }
+
+       // Check individual blocks
        const conflict = bloqueios.find(b => 
           b.data === form.data &&
           b.profissional_id === Number(form.profissional_id) &&
@@ -346,6 +360,12 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
         hora_fim: form.hora_fim ? form.hora_fim + ':00' : undefined,
         observacoes: form.observacoes || undefined,
       });
+
+      // Auto-remove from waiting list if scheduling from it
+      if (prefilledData?.le_id) {
+        try { await deletarListaEspera(prefilledData.le_id); } catch {}
+      }
+
       onSave(); onClose();
     } catch (e) {
       setError(e.response?.data?.detail || 'Erro ao criar agendamento');

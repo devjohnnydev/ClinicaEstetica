@@ -31,9 +31,10 @@ from schemas.agenda import (
 router = APIRouter(prefix="/api/agenda", tags=["agenda"])
 BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
 
-# ── Operating hours: 06:00 – 23:00 ──
+# ── Operating hours: 06:00 – 00:00 (midnight) ──
 HORA_INICIO_GLOBAL = time(6, 0)
-HORA_FIM_GLOBAL = time(23, 0)
+HORA_FIM_GLOBAL = time(23, 59)  # Midnight represented as 23:59 for DB comparisons
+OP_END_MINUTES = 24 * 60  # 1440 = midnight in minutes for analysis engine
 
 
 def now_br():
@@ -979,9 +980,9 @@ def analise_lista_espera(
     # Get all active global blocks
     bloqueios_globais = db.query(BloqueioGlobal).filter(BloqueioGlobal.ativo == True).all()
 
-    # Define operating range in minutes
+    # Define operating range in minutes (06:00 to 00:00 midnight)
     op_start = _time_to_minutes(HORA_INICIO_GLOBAL)
-    op_end = _time_to_minutes(HORA_FIM_GLOBAL)
+    op_end = OP_END_MINUTES  # 1440 = midnight
 
     results = []
     com_vaga_count = 0
@@ -1161,7 +1162,7 @@ def dashboard_agenda(
         profissionais = db.query(Profissional).filter(Profissional.ativo == True).all()
         bloqueios_globais = db.query(BloqueioGlobal).filter(BloqueioGlobal.ativo == True).all()
         op_start = _time_to_minutes(HORA_INICIO_GLOBAL)
-        op_end = _time_to_minutes(HORA_FIM_GLOBAL)
+        op_end = OP_END_MINUTES  # 1440 = midnight
 
         for le in espera_items:
             check_dates = set()
