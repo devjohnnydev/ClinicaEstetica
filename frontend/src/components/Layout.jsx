@@ -123,8 +123,7 @@ export default function Layout() {
             <FiMenu size={24} />
           </button>
           <div className="flex-1 flex items-center gap-2">
-            <h2 className="font-heading text-base sm:text-lg font-semibold text-dark">Dra. Gisele Santos</h2>
-            <span className="hidden sm:inline text-xs text-[#C4956A] font-medium tracking-wider uppercase">Estética e Saúde</span>
+            <h2 className="font-heading text-sm sm:text-base font-semibold text-dark/70">Sistema de Gestão</h2>
           </div>
         </header>
 
