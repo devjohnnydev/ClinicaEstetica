@@ -9,12 +9,15 @@ class ListaEspera(Base):
     id = Column(Integer, primary_key=True, index=True)
     agenda_cliente_id = Column(Integer, ForeignKey("agenda_clientes.id"), nullable=False)
     servico_id = Column(Integer, ForeignKey("servicos.id"), nullable=True)
+    # Legacy single-date/time fields (kept for backward compatibility)
     data_desejada = Column(Date, nullable=True)
     horario_desejado = Column(Time, nullable=True)
     observacoes = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="aguardando")
-    # status values: aguardando, agendado, cancelado
+    # status values: aguardando, agendado, cancelado, resolvido
     created_at = Column(DateTime(timezone=True), default=get_brazil_time)
 
     cliente = relationship("AgendaCliente", back_populates="lista_espera", lazy="joined")
     servico = relationship("Servico", back_populates="lista_espera", lazy="joined")
+    datas = relationship("ListaEsperaData", cascade="all, delete-orphan", lazy="joined")
+    horarios = relationship("ListaEsperaHorario", cascade="all, delete-orphan", lazy="joined")

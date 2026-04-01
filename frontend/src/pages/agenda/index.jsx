@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar, FiColumns, FiZoomIn } from 'react-icons/fi';
-import { getAgendamentos, getBloqueios, getAgendaDashboard, autoConcluir, getProfissionais } from '../../services/api';
+import { FiChevronLeft, FiChevronRight, FiPlus, FiLock, FiClock, FiUsers, FiScissors, FiCalendar, FiColumns, FiZoomIn, FiGlobe, FiAlertCircle } from 'react-icons/fi';
+import { getAgendamentos, getBloqueios, getAgendaDashboard, autoConcluir, getProfissionais, getBloqueiosGlobais } from '../../services/api';
 import { NovoAgendamentoModal, DetalhesAgendamentoModal, BloqueioModal, ListaEsperaModal, Modal } from './AgendaModals';
 import { ClientesTab, ProcedimentosTab } from './AgendaTabs';
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 07:00 – 20:00
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 – 23:00
 const VIEWS = ['dia', 'semana', 'mes', 'profissional'];
 const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -38,6 +38,7 @@ export default function Agenda() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState([]);
   const [bloqueios, setBloqueios] = useState([]);
+  const [bloqueiosGlobais, setBloqueiosGlobais] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [profissionais, setProfissionais] = useState([]);
   const [filterProf, setFilterProf] = useState('');
@@ -59,14 +60,16 @@ export default function Agenda() {
     try {
       const params = { data_inicio: range.start, data_fim: range.end };
       if (filterProf) params.profissional_id = filterProf;
-      const [agRes, blRes, dbRes] = await Promise.all([
+      const [agRes, blRes, dbRes, bgRes] = await Promise.all([
         getAgendamentos(params),
         getBloqueios({ ...params, profissional_id: filterProf || undefined }),
         getAgendaDashboard(),
+        getBloqueiosGlobais(),
       ]);
       setAgendamentos(agRes.data);
       setBloqueios(blRes.data);
       setDashboard(dbRes.data);
+      setBloqueiosGlobais(bgRes.data.filter(b => b.ativo));
     } catch {}
   };
 
@@ -152,6 +155,22 @@ export default function Agenda() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Waiting List Alert — shown on agenda when items have availability */}
+      {dashboard?.espera_com_vaga > 0 && (
+        <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200/60 flex items-center gap-3 cursor-pointer hover:shadow-hover transition-all"
+          onClick={() => { setProcSubTab('espera'); setTab('procedimentos'); }}>
+          <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 animate-pulse">
+            <FiAlertCircle size={18} className="text-emerald-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-heading font-semibold text-sm text-dark">⚠️ Clientes da lista de espera com horários disponíveis</p>
+            <p className="text-xs text-dark/60 mt-0.5">
+              <strong>{dashboard.espera_com_vaga}</strong> cliente(s) possuem vagas na agenda. Clique para gerenciar.
+            </p>
+          </div>
         </div>
       )}
 
@@ -253,12 +272,12 @@ export default function Agenda() {
 
           {/* Calendar views */}
           {view === 'dia' && (
-            <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
+            <DayView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais} slotH={slotH} zoom={zoom}
               onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
               onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
           )}
           {view === 'semana' && (
-            <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} slotH={slotH} zoom={zoom}
+            <WeekView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais} slotH={slotH} zoom={zoom}
               onClickSlot={(d, t) => openNew(d, t)} onClickEvent={setShowDetails} />
           )}
           {view === 'mes' && (
@@ -267,7 +286,7 @@ export default function Agenda() {
               onClickEvent={setShowDetails} dashboard={dashboard} />
           )}
           {view === 'profissional' && (
-            <ProfessionalView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios}
+            <ProfessionalView date={currentDate} agendamentos={agendamentos} bloqueios={bloqueios} bloqueiosGlobais={bloqueiosGlobais}
               profissionais={profissionais} slotH={slotH} zoom={zoom}
               onClickSlot={(t) => openNew(fmtDate(currentDate), t)} onClickEvent={setShowDetails}
               onClickBlock={(b) => { setEditBloqueio(b); setShowBloqueio(true); }} />
@@ -348,7 +367,7 @@ function EventCard({ ag, onClick, compact }) {
    ═══════════════════════════════════════════════════════════ */
 function buildSlots(zoom) {
   const slots = [];
-  for (let h = 7; h <= 20; h++) {
+  for (let h = 6; h <= 22; h++) {
     for (let m = 0; m < 60; m += zoom) {
       slots.push({ h, m, label: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` });
     }
@@ -359,12 +378,12 @@ function buildSlots(zoom) {
 /* ═══════════════════════════════════════════════════════════
    DAY VIEW  — proportional, zoomable
    ═══════════════════════════════════════════════════════════ */
-function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
+function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
   const dateStr = fmtDate(date);
   const dayAgs = agendamentos.filter(a => a.data === dateStr && a.status !== 'cancelado');
   const dayBloqs = bloqueios.filter(b => b.data === dateStr);
   const slots = buildSlots(zoom);
-  const gridStart = 7 * 60;
+  const gridStart = 6 * 60;
   const pxPerMin = slotH / zoom;
   const gridHeight = slots.length * slotH;
 
@@ -382,6 +401,23 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
             <div className="flex-1 bg-white/50" />
           </div>
         ))}
+
+        {/* Global Blocks */}
+        {bloqueiosGlobais.map(bg => {
+          const top = (timeToMin(bg.hora_inicio?.slice(0,5)) - gridStart) * pxPerMin;
+          const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 20);
+          return (
+            <div key={`gb-${bg.id}`}
+              className="absolute right-2 bg-red-50/80 border border-dashed border-red-300/60 rounded-xl flex items-start p-1.5 sm:p-2 pointer-events-none z-[1]"
+              style={{ top, height: h, left: '3rem' }}>
+              <FiGlobe size={11} className="text-red-400 mr-1 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] font-semibold text-red-400">Bloqueio Global</p>
+                <p className="text-[9px] text-red-300">{bg.hora_inicio?.slice(0,5)}–{bg.hora_fim?.slice(0,5)} {bg.motivo ? `· ${bg.motivo}` : ''}</p>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Bloqueios */}
         {dayBloqs.map(b => {
@@ -420,11 +456,11 @@ function DayView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onCl
 /* ═══════════════════════════════════════════════════════════
    WEEK VIEW
    ═══════════════════════════════════════════════════════════ */
-function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onClickEvent }) {
+function WeekView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, zoom, onClickSlot, onClickEvent }) {
   const weekStart = startOfWeek(date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const slots = buildSlots(zoom);
-  const gridStart = 7 * 60;
+  const gridStart = 6 * 60;
   const pxPerMin = slotH / zoom;
   const gridHeight = slots.length * slotH;
 
@@ -454,6 +490,24 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
               ))}
             </div>
           ))}
+
+          {/* Global blocks — rendered across all day columns */}
+          {bloqueiosGlobais.map(bg => {
+            const top = (timeToMin(bg.hora_inicio?.slice(0,5)) - gridStart) * pxPerMin;
+            const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 16);
+            return days.map((d, di) => (
+              <div key={`gb-${bg.id}-${di}`}
+                className="absolute bg-red-50/60 border border-dashed border-red-200/50 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                style={{
+                  top, height: h,
+                  left: `calc(48px + ${di} * ((100% - 48px) / 7) + 1px)`,
+                  width: `calc((100% - 48px) / 7 - 2px)`,
+                }}>
+                <FiGlobe size={9} className="text-red-300" />
+              </div>
+            ));
+          })}
+
           {days.map((d, di) => {
             const ds = fmtDate(d);
             return agendamentos.filter(a => a.data === ds && a.status !== 'cancelado').map(ag => {
@@ -477,11 +531,11 @@ function WeekView({ date, agendamentos, bloqueios, slotH, zoom, onClickSlot, onC
 /* ═══════════════════════════════════════════════════════════
    PROFESSIONAL VIEW — one column per professional
    ═══════════════════════════════════════════════════════════ */
-function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
+function ProfessionalView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], profissionais, slotH, zoom, onClickSlot, onClickEvent, onClickBlock }) {
   const dateStr = fmtDate(date);
   const profs = profissionais.filter(p => p.ativo !== false);
   const slots = buildSlots(zoom);
-  const gridStart = 7 * 60;
+  const gridStart = 6 * 60;
   const pxPerMin = slotH / zoom;
   const gridHeight = slots.length * slotH;
   const colCount = profs.length || 1;
@@ -521,6 +575,23 @@ function ProfessionalView({ date, agendamentos, bloqueios, profissionais, slotH,
               ))}
             </div>
           ))}
+
+          {/* Global blocks — one per column */}
+          {bloqueiosGlobais.map(bg => {
+            const top = (timeToMin(bg.hora_inicio?.slice(0,5)) - gridStart) * pxPerMin;
+            const h = Math.max((timeToMin(bg.hora_fim?.slice(0,5)) - timeToMin(bg.hora_inicio?.slice(0,5))) * pxPerMin, 16);
+            return profs.map((p, pi) => (
+              <div key={`gb-${bg.id}-${pi}`}
+                className="absolute bg-red-50/60 border border-dashed border-red-200/50 rounded-lg flex items-center justify-center pointer-events-none z-[1]"
+                style={{
+                  top, height: h,
+                  left: `calc(48px + ${pi} * ((100% - 48px) / ${colCount}) + 1px)`,
+                  width: `calc((100% - 48px) / ${colCount} - 2px)`,
+                }}>
+                <FiGlobe size={9} className="text-red-300" />
+              </div>
+            ));
+          })}
 
           {/* Events per professional column */}
           {profs.map((p, pi) => {

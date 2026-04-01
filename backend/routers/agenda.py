@@ -13,7 +13,9 @@ from models.servico import Servico
 from models.profissional import Profissional, ProfissionalServico
 from models.agendamento import Agendamento
 from models.bloqueio_horario import BloqueioHorario
+from models.bloqueio_global import BloqueioGlobal
 from models.lista_espera import ListaEspera
+from models.lista_espera_detalhe import ListaEsperaData, ListaEsperaHorario
 from models.pagamento import Pagamento
 from services.auth import get_current_user
 from schemas.agenda import (
@@ -22,11 +24,16 @@ from schemas.agenda import (
     ProfissionalCreate, ProfissionalUpdate, ProfissionalResponse, ProfissionalServicoIds,
     AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, MarcarEnviadoRequest,
     BloqueioCreate, BloqueioResponse,
+    BloqueioGlobalCreate, BloqueioGlobalUpdate, BloqueioGlobalResponse,
     ListaEsperaCreate, ListaEsperaUpdate, ListaEsperaResponse,
 )
 
 router = APIRouter(prefix="/api/agenda", tags=["agenda"])
 BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
+
+# ── Operating hours: 06:00 – 23:00 ──
+HORA_INICIO_GLOBAL = time(6, 0)
+HORA_FIM_GLOBAL = time(23, 0)
 
 
 def now_br():
@@ -176,6 +183,15 @@ def criar_agendamento(
         inicio_dt = datetime.combine(payload.data, payload.hora_inicio)
         fim_dt = inicio_dt + timedelta(minutes=servico.duracao_minutos)
         hora_fim = fim_dt.time()
+
+    # Check global blocks
+    bloqueio_global = db.query(BloqueioGlobal).filter(
+        BloqueioGlobal.ativo == True,
+        BloqueioGlobal.hora_inicio < hora_fim,
+        BloqueioGlobal.hora_fim > payload.hora_inicio,
+    ).first()
+    if bloqueio_global:
+        raise HTTPException(409, f"Horário bloqueado globalmente ({bloqueio_global.motivo or 'Bloqueio global'})")
 
     # Check schedule conflict with professional
     conflito = db.query(Agendamento).filter(
@@ -699,6 +715,60 @@ def deletar_bloqueio(
     return {"message": "Bloqueio removido"}
 
 
+# ─── Bloqueios Globais ─────────────────────────────────────────────
+
+@router.get("/bloqueios-globais", response_model=List[BloqueioGlobalResponse])
+def listar_bloqueios_globais(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(BloqueioGlobal).order_by(BloqueioGlobal.hora_inicio).all()
+
+
+@router.post("/bloqueios-globais", response_model=BloqueioGlobalResponse)
+def criar_bloqueio_global(
+    payload: BloqueioGlobalCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bg = BloqueioGlobal(**payload.dict())
+    db.add(bg)
+    db.commit()
+    db.refresh(bg)
+    return bg
+
+
+@router.put("/bloqueios-globais/{bg_id}", response_model=BloqueioGlobalResponse)
+def atualizar_bloqueio_global(
+    bg_id: int,
+    payload: BloqueioGlobalUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bg = db.query(BloqueioGlobal).filter(BloqueioGlobal.id == bg_id).first()
+    if not bg:
+        raise HTTPException(404, "Bloqueio global não encontrado")
+    for key, value in payload.dict(exclude_unset=True).items():
+        setattr(bg, key, value)
+    db.commit()
+    db.refresh(bg)
+    return bg
+
+
+@router.delete("/bloqueios-globais/{bg_id}")
+def deletar_bloqueio_global(
+    bg_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bg = db.query(BloqueioGlobal).filter(BloqueioGlobal.id == bg_id).first()
+    if not bg:
+        raise HTTPException(404, "Bloqueio global não encontrado")
+    db.delete(bg)
+    db.commit()
+    return {"message": "Bloqueio global removido"}
+
+
 # ═══════════════════════════════════════════════════════════════════
 # LISTA DE ESPERA
 # ═══════════════════════════════════════════════════════════════════
@@ -706,6 +776,8 @@ def deletar_bloqueio(
 @router.get("/lista-espera", response_model=List[ListaEsperaResponse])
 def listar_lista_espera(
     status_filter: Optional[str] = None,
+    cliente_id: Optional[int] = None,
+    servico_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -713,7 +785,11 @@ def listar_lista_espera(
     if status_filter:
         q = q.filter(ListaEspera.status == status_filter)
     else:
-        q = q.filter(ListaEspera.status == "aguardando")
+        q = q.filter(ListaEspera.status.in_(["aguardando"]))
+    if cliente_id:
+        q = q.filter(ListaEspera.agenda_cliente_id == cliente_id)
+    if servico_id:
+        q = q.filter(ListaEspera.servico_id == servico_id)
     return q.order_by(ListaEspera.created_at.desc()).all()
 
 
@@ -723,8 +799,29 @@ def criar_lista_espera(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    le = ListaEspera(**payload.dict())
+    le = ListaEspera(
+        agenda_cliente_id=payload.agenda_cliente_id,
+        servico_id=payload.servico_id,
+        data_desejada=payload.data_desejada,
+        horario_desejado=payload.horario_desejado,
+        observacoes=payload.observacoes,
+    )
     db.add(le)
+    db.flush()
+
+    # Save multiple preferred dates
+    for d in payload.datas_preferidas:
+        db.add(ListaEsperaData(lista_espera_id=le.id, data=d))
+
+    # Save multiple preferred times
+    for h in payload.horarios_preferidos:
+        try:
+            parts = h.replace(":", " ").split()
+            t = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+            db.add(ListaEsperaHorario(lista_espera_id=le.id, horario=t))
+        except (ValueError, IndexError):
+            pass
+
     db.commit()
     db.refresh(le)
     return le
@@ -740,8 +837,33 @@ def atualizar_lista_espera(
     le = db.query(ListaEspera).filter(ListaEspera.id == le_id).first()
     if not le:
         raise HTTPException(404, "Item não encontrado na lista de espera")
-    for key, value in payload.dict(exclude_unset=True).items():
+
+    update_data = payload.dict(exclude_unset=True)
+
+    # Handle multi-dates update
+    if "datas_preferidas" in update_data:
+        datas_novas = update_data.pop("datas_preferidas")
+        if datas_novas is not None:
+            db.query(ListaEsperaData).filter(ListaEsperaData.lista_espera_id == le.id).delete()
+            for d in datas_novas:
+                db.add(ListaEsperaData(lista_espera_id=le.id, data=d))
+
+    # Handle multi-times update
+    if "horarios_preferidos" in update_data:
+        horarios_novos = update_data.pop("horarios_preferidos")
+        if horarios_novos is not None:
+            db.query(ListaEsperaHorario).filter(ListaEsperaHorario.lista_espera_id == le.id).delete()
+            for h in horarios_novos:
+                try:
+                    parts = h.replace(":", " ").split()
+                    t = time(int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
+                    db.add(ListaEsperaHorario(lista_espera_id=le.id, horario=t))
+                except (ValueError, IndexError):
+                    pass
+
+    for key, value in update_data.items():
         setattr(le, key, value)
+
     db.commit()
     db.refresh(le)
     return le
@@ -759,6 +881,20 @@ def deletar_lista_espera(
     db.delete(le)
     db.commit()
     return {"message": "Item removido da lista de espera"}
+
+
+@router.post("/lista-espera/{le_id}/resolver")
+def resolver_lista_espera(
+    le_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    le = db.query(ListaEspera).filter(ListaEspera.id == le_id).first()
+    if not le:
+        raise HTTPException(404, "Item não encontrado na lista de espera")
+    le.status = "resolvido"
+    db.commit()
+    return {"message": "Item marcado como resolvido"}
 
 
 @router.post("/lista-espera/{le_id}/agendar", response_model=AgendamentoResponse)
@@ -811,6 +947,181 @@ def agendar_da_lista_espera(
 
 
 # ═══════════════════════════════════════════════════════════════════
+# MOTOR DE ANÁLISE — Matching engine for waiting list
+# ═══════════════════════════════════════════════════════════════════
+
+def _time_to_minutes(t):
+    """Converts time object to total minutes."""
+    if isinstance(t, str):
+        parts = t.split(":")
+        return int(parts[0]) * 60 + int(parts[1])
+    return t.hour * 60 + t.minute
+
+
+@router.get("/lista-espera/analise")
+def analise_lista_espera(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Intelligent analysis engine: cross-references ALL waiting list items
+    with the ENTIRE schedule to find available slots.
+    Does NOT auto-schedule. Only reports opportunities."""
+
+    items = db.query(ListaEspera).filter(
+        ListaEspera.status == "aguardando"
+    ).all()
+
+    if not items:
+        return {"items": [], "total": 0, "com_vaga": 0, "sem_vaga": 0}
+
+    # Get all active professionals
+    profissionais = db.query(Profissional).filter(Profissional.ativo == True).all()
+    # Get all active global blocks
+    bloqueios_globais = db.query(BloqueioGlobal).filter(BloqueioGlobal.ativo == True).all()
+
+    # Define operating range in minutes
+    op_start = _time_to_minutes(HORA_INICIO_GLOBAL)
+    op_end = _time_to_minutes(HORA_FIM_GLOBAL)
+
+    results = []
+    com_vaga_count = 0
+
+    for le in items:
+        # Determine which dates to check
+        check_dates = set()
+
+        # From multi-date relations
+        for d_obj in le.datas:
+            check_dates.add(d_obj.data)
+
+        # From legacy single date
+        if le.data_desejada:
+            check_dates.add(le.data_desejada)
+
+        # If no dates specified, check next 30 days
+        if not check_dates:
+            hoje = now_br().date()
+            for i in range(30):
+                check_dates.add(hoje + timedelta(days=i))
+
+        # Get service duration (default 60 min if unknown)
+        duracao = 60
+        if le.servico_id:
+            srv = le.servico
+            if srv:
+                duracao = srv.duracao_minutos
+
+        # Find available slots across all checked dates
+        disponibilidades = []
+
+        for check_date in sorted(check_dates):
+            # Get all appointments for this date (non-cancelled)
+            day_ags = db.query(Agendamento).filter(
+                Agendamento.data == check_date,
+                Agendamento.status.notin_(["cancelado"]),
+            ).all()
+
+            # Get all blocks for this date
+            day_blocks = db.query(BloqueioHorario).filter(
+                BloqueioHorario.data == check_date,
+            ).all()
+
+            # For each professional, find free slots
+            for prof in profissionais:
+                # Build occupied intervals for this professional on this date
+                occupied = []
+
+                # Regular appointments
+                for ag in day_ags:
+                    if ag.profissional_id == prof.id:
+                        occupied.append((
+                            _time_to_minutes(ag.hora_inicio),
+                            _time_to_minutes(ag.hora_fim),
+                        ))
+
+                # Individual blocks
+                for bl in day_blocks:
+                    if bl.profissional_id == prof.id:
+                        occupied.append((
+                            _time_to_minutes(bl.hora_inicio),
+                            _time_to_minutes(bl.hora_fim),
+                        ))
+
+                # Global blocks
+                for gb in bloqueios_globais:
+                    occupied.append((
+                        _time_to_minutes(gb.hora_inicio),
+                        _time_to_minutes(gb.hora_fim),
+                    ))
+
+                # Sort occupied intervals
+                occupied.sort()
+
+                # Find free slots that can fit the procedure duration
+                free_slots = []
+                cursor = op_start
+
+                for occ_start, occ_end in occupied:
+                    if occ_start > cursor:
+                        gap = occ_start - cursor
+                        if gap >= duracao:
+                            free_slots.append({
+                                "inicio": f"{cursor // 60:02d}:{cursor % 60:02d}",
+                                "fim": f"{occ_start // 60:02d}:{occ_start % 60:02d}",
+                            })
+                    cursor = max(cursor, occ_end)
+
+                # Check gap after last occupied slot
+                if cursor < op_end:
+                    gap = op_end - cursor
+                    if gap >= duracao:
+                        free_slots.append({
+                            "inicio": f"{cursor // 60:02d}:{cursor % 60:02d}",
+                            "fim": f"{op_end // 60:02d}:{op_end % 60:02d}",
+                        })
+
+                if free_slots:
+                    disponibilidades.append({
+                        "data": str(check_date),
+                        "profissional_id": prof.id,
+                        "profissional_nome": prof.nome,
+                        "horarios_livres": free_slots,
+                    })
+
+        tem_vaga = len(disponibilidades) > 0
+        if tem_vaga:
+            com_vaga_count += 1
+
+        # Serialize the item
+        item_data = {
+            "id": le.id,
+            "agenda_cliente_id": le.agenda_cliente_id,
+            "cliente_nome": le.cliente.nome if le.cliente else "—",
+            "cliente_telefone": le.cliente.telefone if le.cliente else "",
+            "servico_id": le.servico_id,
+            "servico_nome": le.servico.nome if le.servico else "Qualquer serviço",
+            "servico_duracao": duracao,
+            "data_desejada": str(le.data_desejada) if le.data_desejada else None,
+            "horario_desejado": str(le.horario_desejado)[:5] if le.horario_desejado else None,
+            "datas_preferidas": [str(d.data) for d in le.datas],
+            "horarios_preferidos": [str(h.horario)[:5] for h in le.horarios],
+            "observacoes": le.observacoes,
+            "status": le.status,
+            "created_at": str(le.created_at) if le.created_at else None,
+            "tem_vaga": tem_vaga,
+            "disponibilidades": disponibilidades[:10],  # Limit to avoid huge payloads
+        }
+        results.append(item_data)
+
+    return {
+        "items": results,
+        "total": len(results),
+        "com_vaga": com_vaga_count,
+        "sem_vaga": len(results) - com_vaga_count,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
 # DASHBOARD & ANIVERSARIANTES
 # ═══════════════════════════════════════════════════════════════════
 
@@ -841,6 +1152,68 @@ def dashboard_agenda(
         ListaEspera.status == "aguardando",
     ).count()
 
+    # Quick check: how many waiting list items have available slots
+    espera_com_vaga = 0
+    if aguardando_espera > 0:
+        espera_items = db.query(ListaEspera).filter(
+            ListaEspera.status == "aguardando",
+        ).all()
+        profissionais = db.query(Profissional).filter(Profissional.ativo == True).all()
+        bloqueios_globais = db.query(BloqueioGlobal).filter(BloqueioGlobal.ativo == True).all()
+        op_start = _time_to_minutes(HORA_INICIO_GLOBAL)
+        op_end = _time_to_minutes(HORA_FIM_GLOBAL)
+
+        for le in espera_items:
+            check_dates = set()
+            for d_obj in le.datas:
+                check_dates.add(d_obj.data)
+            if le.data_desejada:
+                check_dates.add(le.data_desejada)
+            if not check_dates:
+                check_dates.add(hoje)
+
+            duracao = 60
+            if le.servico and le.servico.duracao_minutos:
+                duracao = le.servico.duracao_minutos
+
+            found = False
+            for check_date in check_dates:
+                if found:
+                    break
+                day_ags = db.query(Agendamento).filter(
+                    Agendamento.data == check_date,
+                    Agendamento.status.notin_(["cancelado"]),
+                ).all()
+                day_blocks = db.query(BloqueioHorario).filter(
+                    BloqueioHorario.data == check_date,
+                ).all()
+
+                for prof in profissionais:
+                    if found:
+                        break
+                    occupied = []
+                    for ag in day_ags:
+                        if ag.profissional_id == prof.id:
+                            occupied.append((_time_to_minutes(ag.hora_inicio), _time_to_minutes(ag.hora_fim)))
+                    for bl in day_blocks:
+                        if bl.profissional_id == prof.id:
+                            occupied.append((_time_to_minutes(bl.hora_inicio), _time_to_minutes(bl.hora_fim)))
+                    for gb in bloqueios_globais:
+                        occupied.append((_time_to_minutes(gb.hora_inicio), _time_to_minutes(gb.hora_fim)))
+                    occupied.sort()
+
+                    cursor = op_start
+                    for occ_start, occ_end in occupied:
+                        if occ_start > cursor and (occ_start - cursor) >= duracao:
+                            found = True
+                            break
+                        cursor = max(cursor, occ_end)
+                    if not found and cursor < op_end and (op_end - cursor) >= duracao:
+                        found = True
+
+            if found:
+                espera_com_vaga += 1
+
     # Birthday people this month
     aniversariantes = _get_aniversariantes(db, hoje.month)
 
@@ -849,6 +1222,7 @@ def dashboard_agenda(
         "confirmados": confirmados,
         "concluidos": concluidos,
         "aguardando_espera": aguardando_espera,
+        "espera_com_vaga": espera_com_vaga,
         "aniversariantes": aniversariantes,
     }
 

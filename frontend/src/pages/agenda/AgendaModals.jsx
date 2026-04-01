@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { FiX, FiSearch, FiUser, FiEdit2, FiCalendar, FiAlertCircle, FiCheck, FiXCircle, FiPlay, FiRefreshCw } from 'react-icons/fi';
+import { useState, useEffect, useMemo } from 'react';
+import { FiX, FiSearch, FiUser, FiEdit2, FiCalendar, FiAlertCircle, FiCheck, FiXCircle, FiPlay, FiRefreshCw, FiGlobe, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import {
   getAgendaClientes, criarAgendaCliente, getPacientesDisponiveis,
   getServicos, getProfissionais, criarAgendamento, atualizarAgendamento,
   cancelarAgendamento, naoCompareceu, concluirAgendamento, confirmarAgendamento,
   emAtendimento, criarBloqueio, criarListaEspera, deletarBloqueio,
+  getBloqueiosGlobais, criarBloqueioGlobal, atualizarBloqueioGlobal, deletarBloqueioGlobal,
 } from '../../services/api';
 
 function timeToMin(t) { if (!t) return 0; const p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); }
@@ -106,6 +107,149 @@ function ClientPicker({ value, onChange, clients, setClients }) {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+/* ── Multi-date Calendar Picker ───────────────────────────────── */
+function MultiDateCalendar({ selectedDates, onChange }) {
+  const [viewDate, setViewDate] = useState(new Date());
+  const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const today = new Date().toISOString().split('T')[0];
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const toggleDate = (day) => {
+    const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const newDates = selectedDates.includes(ds)
+      ? selectedDates.filter(d => d !== ds)
+      : [...selectedDates, ds].sort();
+    onChange(newDates);
+  };
+
+  const isSelected = (day) => {
+    const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return selectedDates.includes(ds);
+  };
+
+  return (
+    <div className="border border-secondary/40 rounded-2xl overflow-hidden bg-white">
+      {/* Calendar header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-soft border-b border-secondary/30">
+        <button type="button" onClick={() => setViewDate(new Date(y, m - 1, 1))} className="w-7 h-7 rounded-lg bg-white shadow-sm border border-secondary/30 flex items-center justify-center hover:bg-primary">
+          <FiChevronLeft size={14} />
+        </button>
+        <span className="text-sm font-semibold text-dark">{MONTHS[m]} {y}</span>
+        <button type="button" onClick={() => setViewDate(new Date(y, m + 1, 1))} className="w-7 h-7 rounded-lg bg-white shadow-sm border border-secondary/30 flex items-center justify-center hover:bg-primary">
+          <FiChevronRight size={14} />
+        </button>
+      </div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7">
+        {DAYS.map(d => (
+          <div key={d} className="text-center py-1.5 text-[10px] font-semibold text-dark/40 uppercase">{d}</div>
+        ))}
+      </div>
+      {/* Days grid */}
+      <div className="grid grid-cols-7 gap-px bg-secondary/20 p-px">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} className="bg-gray-50 min-h-[36px]" />;
+          const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const sel = isSelected(day);
+          const isToday = ds === today;
+          const isPast = ds < today;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => !isPast && toggleDate(day)}
+              disabled={isPast}
+              className={`min-h-[36px] flex items-center justify-center text-sm font-medium transition-all
+                ${sel ? 'bg-accent text-white shadow-sm' : 'bg-white hover:bg-accent/10'}
+                ${isToday && !sel ? 'ring-2 ring-accent/40 ring-inset' : ''}
+                ${isPast ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
+              `}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      {/* Selected dates summary */}
+      {selectedDates.length > 0 && (
+        <div className="px-3 py-2 bg-accent/5 border-t border-secondary/20">
+          <p className="text-[10px] font-semibold text-dark/50 uppercase mb-1">{selectedDates.length} data(s) selecionada(s)</p>
+          <div className="flex flex-wrap gap-1">
+            {selectedDates.map(d => (
+              <span key={d} className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/15 text-accent rounded-full text-[11px] font-medium">
+                {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                <button type="button" onClick={() => onChange(selectedDates.filter(x => x !== d))} className="hover:text-red-500">×</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Multi-time Picker ────────────────────────────────────────── */
+function MultiTimePicker({ selectedTimes, onChange }) {
+  const [inputTime, setInputTime] = useState('');
+
+  const addTime = () => {
+    if (inputTime && !selectedTimes.includes(inputTime)) {
+      onChange([...selectedTimes, inputTime].sort());
+      setInputTime('');
+    }
+  };
+
+  // Quick time buttons 06:00-22:00
+  const quickTimes = [];
+  for (let h = 6; h <= 22; h++) {
+    quickTimes.push(`${String(h).padStart(2, '0')}:00`);
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-2">
+        <input type="time" className={`${inputCls} flex-1`} value={inputTime} onChange={e => setInputTime(e.target.value)} min="06:00" max="23:00" />
+        <button type="button" className="px-4 py-2 bg-accent/10 text-accent rounded-2xl text-sm font-medium hover:bg-accent/20 transition-all" onClick={addTime} disabled={!inputTime}>
+          Adicionar
+        </button>
+      </div>
+      {/* Quick select */}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {quickTimes.map(t => (
+          <button key={t} type="button" onClick={() => {
+            if (selectedTimes.includes(t)) onChange(selectedTimes.filter(x => x !== t));
+            else onChange([...selectedTimes, t].sort());
+          }}
+            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all border ${
+              selectedTimes.includes(t)
+                ? 'bg-accent text-white border-accent shadow-sm'
+                : 'bg-white text-dark/50 border-secondary/40 hover:border-accent/40 hover:text-accent'
+            }`}
+          >{t}</button>
+        ))}
+      </div>
+      {selectedTimes.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {selectedTimes.map(t => (
+            <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/15 text-accent rounded-full text-xs font-semibold">
+              🕐 {t}
+              <button type="button" onClick={() => onChange(selectedTimes.filter(x => x !== t))} className="hover:text-red-500 ml-0.5">×</button>
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -230,8 +374,8 @@ export function NovoAgendamentoModal({ open, onClose, onSave, initialDate, initi
           </select>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div><label className={labelCls}>Data *</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} /></div>
-          <div><label className={labelCls}>Início *</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
+          <div><label className={labelCls}>Data *</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} min="2020-01-01" /></div>
+          <div><label className={labelCls}>Início *</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} min="06:00" max="23:00" /></div>
           <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
         </div>
         <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
@@ -406,7 +550,7 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div><label className={labelCls}>Data</label><input type="date" className={inputCls} value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))} /></div>
-              <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={editForm.hora_inicio} onChange={e => setEditForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
+              <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={editForm.hora_inicio} onChange={e => setEditForm(f => ({ ...f, hora_inicio: e.target.value }))} min="06:00" max="23:00" /></div>
               <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={editForm.hora_fim} onChange={e => setEditForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -467,18 +611,29 @@ export function DetalhesAgendamentoModal({ open, onClose, agendamento, onUpdate 
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   BLOQUEIO MODAL
+   BLOQUEIO MODAL — with integrated Global Block option
    ══════════════════════════════════════════════════════════════════ */
 export function BloqueioModal({ open, onClose, onSave, profissionais: profList, bloqueio }) {
   const [profs, setProfs] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [isGlobal, setIsGlobal] = useState(false);
   const [form, setForm] = useState({ profissional_id: '', data: '', hora_inicio: '', hora_fim: '', tipo: 'ausencia', motivo: '' });
+  const [globalForm, setGlobalForm] = useState({ hora_inicio: '12:00', hora_fim: '13:00', motivo: '' });
+  const [globais, setGlobais] = useState([]);
+  const [editGlobalId, setEditGlobalId] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const loadGlobais = async () => {
+    try { const r = await getBloqueiosGlobais(); setGlobais(r.data); } catch {}
+  };
 
   useEffect(() => {
     if (open) {
       if (profList?.length) setProfs(profList);
       else getProfissionais({}).then(r => setProfs(r.data)).catch(() => {});
+      loadGlobais();
+      setIsGlobal(false);
+      setEditGlobalId(null);
       
       if (bloqueio) {
         setEditId(bloqueio.id);
@@ -516,44 +671,152 @@ export function BloqueioModal({ open, onClose, onSave, profissionais: profList, 
     } catch {} finally { setLoading(false); }
   };
 
+  // Global block methods
+  const handleSaveGlobal = async () => {
+    setLoading(true);
+    try {
+      if (editGlobalId) {
+        await atualizarBloqueioGlobal(editGlobalId, {
+          hora_inicio: globalForm.hora_inicio + ':00',
+          hora_fim: globalForm.hora_fim + ':00',
+          motivo: globalForm.motivo || undefined,
+        });
+      } else {
+        await criarBloqueioGlobal({
+          hora_inicio: globalForm.hora_inicio + ':00',
+          hora_fim: globalForm.hora_fim + ':00',
+          motivo: globalForm.motivo || undefined,
+        });
+      }
+      setEditGlobalId(null);
+      setGlobalForm({ hora_inicio: '12:00', hora_fim: '13:00', motivo: '' });
+      loadGlobais();
+      onSave();
+    } catch {} finally { setLoading(false); }
+  };
+
+  const handleDeleteGlobal = async (id) => {
+    try {
+      await deletarBloqueioGlobal(id);
+      loadGlobais();
+      onSave();
+    } catch {}
+  };
+
+  const handleEditGlobal = (bg) => {
+    setEditGlobalId(bg.id);
+    setGlobalForm({
+      hora_inicio: bg.hora_inicio?.slice(0, 5) || '12:00',
+      hora_fim: bg.hora_fim?.slice(0, 5) || '13:00',
+      motivo: bg.motivo || '',
+    });
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title="Bloquear Horário">
+    <Modal open={open} onClose={onClose} title="Bloquear Horário" wide>
       <div className="space-y-4">
-        <div><label className={labelCls}>Profissional *</label><select className={inputCls} value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}><option value="">Selecione...</option>{profs.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
-        <div><label className={labelCls}>Tipo</label><select className={inputCls} value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}><option value="ausencia">Ausência</option><option value="atestado">Atestado</option><option value="intervalo">Intervalo</option></select></div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div><label className={labelCls}>Data</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} /></div>
-          <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} /></div>
-          <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} /></div>
+        {/* Toggle: Individual vs Global */}
+        <div className="flex bg-soft rounded-2xl p-1 gap-1">
+          <button onClick={() => setIsGlobal(false)} className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${!isGlobal ? 'bg-white text-accent shadow-card' : 'text-dark/40 hover:text-dark'}`}>
+            <FiCalendar size={14} /> Bloqueio Individual
+          </button>
+          <button onClick={() => setIsGlobal(true)} className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${isGlobal ? 'bg-white text-accent shadow-card' : 'text-dark/40 hover:text-dark'}`}>
+            <FiGlobe size={14} /> Bloqueio Global
+          </button>
         </div>
-        <div><label className={labelCls}>Motivo</label><textarea className={inputCls} rows={2} value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} /></div>
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
-          {editId ? (
-             <button className={btnDanger} onClick={handleDelete} disabled={loading}>{loading ? '...' : 'Desbloquear / Remover'}</button>
-          ) : <div />}
-          <div className="flex gap-2">
-            <button className={btnSecondary} onClick={onClose}>Cancelar</button>
-            <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Salvar Bloqueio'}</button>
-          </div>
-        </div>
+
+        {!isGlobal ? (
+          /* ── Individual Block Form ── */
+          <>
+            <div><label className={labelCls}>Profissional *</label><select className={inputCls} value={form.profissional_id} onChange={e => setForm(f => ({ ...f, profissional_id: e.target.value }))}><option value="">Selecione...</option>{profs.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
+            <div><label className={labelCls}>Tipo</label><select className={inputCls} value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}><option value="ausencia">Ausência</option><option value="atestado">Atestado</option><option value="intervalo">Intervalo</option></select></div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><label className={labelCls}>Data</label><input type="date" className={inputCls} value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} /></div>
+              <div><label className={labelCls}>Início</label><input type="time" className={inputCls} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} min="06:00" max="23:00" /></div>
+              <div><label className={labelCls}>Fim</label><input type="time" className={inputCls} value={form.hora_fim} onChange={e => setForm(f => ({ ...f, hora_fim: e.target.value }))} min="06:00" max="23:00" /></div>
+            </div>
+            <div><label className={labelCls}>Motivo</label><textarea className={inputCls} rows={2} value={form.motivo} onChange={e => setForm(f => ({ ...f, motivo: e.target.value }))} /></div>
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
+              {editId ? (
+                 <button className={btnDanger} onClick={handleDelete} disabled={loading}>{loading ? '...' : 'Desbloquear / Remover'}</button>
+              ) : <div />}
+              <div className="flex gap-2">
+                <button className={btnSecondary} onClick={onClose}>Cancelar</button>
+                <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Salvar Bloqueio'}</button>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ── Global Block Form ── */
+          <>
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/60">
+              <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                <FiAlertCircle size={13} />
+                <span><strong>Bloqueio Global</strong> bloqueia o horário para <strong>TODOS</strong> os profissionais em <strong>TODOS</strong> os dias. Permanece ativo até ser removido manualmente.</span>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className={labelCls}>Horário Início *</label><input type="time" className={inputCls} value={globalForm.hora_inicio} onChange={e => setGlobalForm(f => ({ ...f, hora_inicio: e.target.value }))} min="06:00" max="23:00" /></div>
+              <div><label className={labelCls}>Horário Fim *</label><input type="time" className={inputCls} value={globalForm.hora_fim} onChange={e => setGlobalForm(f => ({ ...f, hora_fim: e.target.value }))} min="06:00" max="23:00" /></div>
+            </div>
+            <div><label className={labelCls}>Motivo</label><textarea className={inputCls} rows={2} placeholder="Ex: Horário de almoço, intervalo..." value={globalForm.motivo} onChange={e => setGlobalForm(f => ({ ...f, motivo: e.target.value }))} /></div>
+            <div className="flex justify-end gap-2">
+              <button className={btnSecondary} onClick={() => { setEditGlobalId(null); setGlobalForm({ hora_inicio: '12:00', hora_fim: '13:00', motivo: '' }); }}>Limpar</button>
+              <button className={btnPrimary} onClick={handleSaveGlobal} disabled={loading}>{loading ? 'Salvando...' : editGlobalId ? 'Atualizar Bloqueio' : 'Criar Bloqueio Global'}</button>
+            </div>
+
+            {/* Existing global blocks */}
+            {globais.length > 0 && (
+              <div className="pt-3 border-t border-secondary/30">
+                <p className="text-[10px] text-dark/40 uppercase font-semibold tracking-wide mb-2">Bloqueios Globais Ativos</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {globais.map(bg => (
+                    <div key={bg.id} className={`flex items-center gap-3 p-3 rounded-xl border ${bg.ativo ? 'bg-red-50/50 border-red-200/60' : 'bg-gray-50 border-gray-200 opacity-50'}`}>
+                      <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                        <FiGlobe size={14} className="text-red-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-dark">{bg.hora_inicio?.slice(0,5)} — {bg.hora_fim?.slice(0,5)}</p>
+                        <p className="text-xs text-dark/40 truncate">{bg.motivo || 'Sem motivo'}</p>
+                      </div>
+                      <button className="text-accent hover:text-accent-dark text-xs px-2 py-1" onClick={() => handleEditGlobal(bg)}>
+                        <FiEdit2 size={13} />
+                      </button>
+                      <button className="text-red-400 hover:text-red-600 text-xs px-2 py-1" onClick={() => {
+                        if (window.confirm('Remover este bloqueio global?')) handleDeleteGlobal(bg.id);
+                      }}>
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </Modal>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   LISTA DE ESPERA MODAL
+   LISTA DE ESPERA MODAL — Multi-date calendar + multi-time
    ══════════════════════════════════════════════════════════════════ */
 export function ListaEsperaModal({ open, onClose, onSave }) {
   const [clients, setClients] = useState([]);
   const [servicos, setServicos] = useState([]);
-  const [form, setForm] = useState({ agenda_cliente_id: null, servico_id: '', data_desejada: '', horario_desejado: '', observacoes: '' });
+  const [form, setForm] = useState({ agenda_cliente_id: null, servico_id: '', observacoes: '' });
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [selectedTimes, setSelectedTimes] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       getServicos({}).then(r => setServicos(r.data)).catch(() => {});
-      setForm({ agenda_cliente_id: null, servico_id: '', data_desejada: '', horario_desejado: '', observacoes: '' });
+      setForm({ agenda_cliente_id: null, servico_id: '', observacoes: '' });
+      setSelectedDates([]);
+      setSelectedTimes([]);
     }
   }, [open]);
 
@@ -561,10 +824,12 @@ export function ListaEsperaModal({ open, onClose, onSave }) {
     if (!form.agenda_cliente_id) return;
     setLoading(true);
     try {
-      const payload = { agenda_cliente_id: form.agenda_cliente_id };
+      const payload = {
+        agenda_cliente_id: form.agenda_cliente_id,
+        datas_preferidas: selectedDates,
+        horarios_preferidos: selectedTimes,
+      };
       if (form.servico_id) payload.servico_id = Number(form.servico_id);
-      if (form.data_desejada) payload.data_desejada = form.data_desejada;
-      if (form.horario_desejado) payload.horario_desejado = form.horario_desejado + ':00';
       if (form.observacoes) payload.observacoes = form.observacoes;
       await criarListaEspera(payload);
       onSave(); onClose();
@@ -572,16 +837,28 @@ export function ListaEsperaModal({ open, onClose, onSave }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Adicionar à Lista de Espera">
+    <Modal open={open} onClose={onClose} title="Adicionar à Lista de Espera" wide>
       <div className="space-y-4">
         <ClientPicker value={form.agenda_cliente_id} onChange={v => setForm(f => ({ ...f, agenda_cliente_id: v }))} clients={clients} setClients={setClients} />
-        <div><label className={labelCls}>Procedimento desejado</label><select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}><option value="">Qualquer</option>{servicos.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><label className={labelCls}>Data desejada</label><input type="date" className={inputCls} value={form.data_desejada} onChange={e => setForm(f => ({ ...f, data_desejada: e.target.value }))} /></div>
-          <div><label className={labelCls}>Horário desejado</label><input type="time" className={inputCls} value={form.horario_desejado} onChange={e => setForm(f => ({ ...f, horario_desejado: e.target.value }))} /></div>
+        <div><label className={labelCls}>Procedimento desejado</label><select className={inputCls} value={form.servico_id} onChange={e => setForm(f => ({ ...f, servico_id: e.target.value }))}><option value="">Qualquer</option>{servicos.map(s => <option key={s.id} value={s.id}>{s.nome} — {s.duracao_minutos}min</option>)}</select></div>
+        
+        {/* Multi-date Calendar */}
+        <div>
+          <label className={labelCls}>Datas Preferidas</label>
+          <MultiDateCalendar selectedDates={selectedDates} onChange={setSelectedDates} />
         </div>
-        <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
-        <div className="flex justify-end gap-3"><button className={btnSecondary} onClick={onClose}>Cancelar</button><button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Adicionar'}</button></div>
+
+        {/* Multi-time Picker */}
+        <div>
+          <label className={labelCls}>Horários Preferidos</label>
+          <MultiTimePicker selectedTimes={selectedTimes} onChange={setSelectedTimes} />
+        </div>
+
+        <div><label className={labelCls}>Observações</label><textarea className={inputCls} rows={2} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Ex: Cliente prefere pela manhã..." /></div>
+        <div className="flex justify-end gap-3">
+          <button className={btnSecondary} onClick={onClose}>Cancelar</button>
+          <button className={btnPrimary} onClick={handleSave} disabled={loading}>{loading ? 'Salvando...' : 'Adicionar à Lista'}</button>
+        </div>
       </div>
     </Modal>
   );

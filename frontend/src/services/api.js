@@ -110,6 +110,14 @@ export const criarListaEspera = (data) => api.post('/api/agenda/lista-espera', d
 export const atualizarListaEspera = (id, data) => api.put(`/api/agenda/lista-espera/${id}`, data);
 export const deletarListaEspera = (id) => api.delete(`/api/agenda/lista-espera/${id}`);
 export const agendarDaListaEspera = (id, data) => api.post(`/api/agenda/lista-espera/${id}/agendar`, data);
+export const resolverListaEspera = (id) => api.post(`/api/agenda/lista-espera/${id}/resolver`);
+export const getListaEsperaAnalise = () => api.get('/api/agenda/lista-espera/analise');
+
+// Bloqueios Globais
+export const getBloqueiosGlobais = () => api.get('/api/agenda/bloqueios-globais');
+export const criarBloqueioGlobal = (data) => api.post('/api/agenda/bloqueios-globais', data);
+export const atualizarBloqueioGlobal = (id, data) => api.put(`/api/agenda/bloqueios-globais/${id}`, data);
+export const deletarBloqueioGlobal = (id) => api.delete(`/api/agenda/bloqueios-globais/${id}`);
 
 // Dashboard & Aniversariantes
 export const getAgendaDashboard = () => api.get('/api/agenda/dashboard');

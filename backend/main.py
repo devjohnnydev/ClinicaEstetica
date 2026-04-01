@@ -18,7 +18,9 @@ from models.servico import Servico
 from models.profissional import Profissional, ProfissionalServico
 from models.agendamento import Agendamento
 from models.bloqueio_horario import BloqueioHorario
+from models.bloqueio_global import BloqueioGlobal
 from models.lista_espera import ListaEspera
+from models.lista_espera_detalhe import ListaEsperaData, ListaEsperaHorario
 from models.pagamento import Pagamento
 from models.despesa import Despesa, ParcelaDespesa, CategoriaDespesa
 from services.auth import get_password_hash, get_current_user
@@ -171,6 +173,16 @@ def run_migrations_and_seed():
             # agendamentos table
             ("agendamentos", "confirmacao_enviada", "BOOLEAN DEFAULT FALSE"),
         ]
+
+        # ── Create new tables if they don't exist ──────────────────
+        new_tables = ["bloqueios_globais", "lista_espera_datas", "lista_espera_horarios"]
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(engine)
+        existing_tables = inspector.get_table_names()
+        for tbl in new_tables:
+            if tbl not in existing_tables:
+                # Table will be auto-created by Base.metadata.create_all above
+                print(f"  ✅ Tabela {tbl} criada")
         for table, col, col_type in migrations:
             try:
                 db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))

@@ -201,10 +201,40 @@ class BloqueioResponse(BaseModel):
         from_attributes = True
 
 
+# ─── BloqueioGlobal ────────────────────────────────────────────────
+class BloqueioGlobalCreate(BaseModel):
+    hora_inicio: time
+    hora_fim: time
+    motivo: Optional[str] = None
+
+
+class BloqueioGlobalUpdate(BaseModel):
+    hora_inicio: Optional[time] = None
+    hora_fim: Optional[time] = None
+    motivo: Optional[str] = None
+    ativo: Optional[bool] = None
+
+
+class BloqueioGlobalResponse(BaseModel):
+    id: int
+    hora_inicio: time
+    hora_fim: time
+    motivo: Optional[str] = None
+    ativo: bool
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 # ─── ListaEspera ───────────────────────────────────────────────────
 class ListaEsperaCreate(BaseModel):
     agenda_cliente_id: int
     servico_id: Optional[int] = None
+    # Multi-date and multi-time support
+    datas_preferidas: List[date] = []
+    horarios_preferidos: List[str] = []  # e.g. ["09:00", "14:00"]
+    # Legacy single fields (kept for backward compat)
     data_desejada: Optional[date] = None
     horario_desejado: Optional[time] = None
     observacoes: Optional[str] = None
@@ -212,10 +242,28 @@ class ListaEsperaCreate(BaseModel):
 
 class ListaEsperaUpdate(BaseModel):
     servico_id: Optional[int] = None
+    datas_preferidas: Optional[List[date]] = None
+    horarios_preferidos: Optional[List[str]] = None
     data_desejada: Optional[date] = None
     horario_desejado: Optional[time] = None
     observacoes: Optional[str] = None
     status: Optional[str] = None
+
+
+class ListaEsperaDataNested(BaseModel):
+    id: int
+    data: date
+
+    class Config:
+        from_attributes = True
+
+
+class ListaEsperaHorarioNested(BaseModel):
+    id: int
+    horario: time
+
+    class Config:
+        from_attributes = True
 
 
 class ListaEsperaResponse(BaseModel):
@@ -229,9 +277,12 @@ class ListaEsperaResponse(BaseModel):
     created_at: Optional[datetime] = None
     cliente: Optional[AgendamentoClienteNested] = None
     servico: Optional[AgendamentoServicoNested] = None
+    datas: List[ListaEsperaDataNested] = []
+    horarios: List[ListaEsperaHorarioNested] = []
 
     class Config:
         from_attributes = True
+
 
 class MarcarEnviadoRequest(BaseModel):
     id: int
