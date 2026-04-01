@@ -41,7 +41,7 @@ export default function Login() {
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-elegant p-8 md:p-10 border border-white/50">
           {/* Logo */}
           <div className="text-center mb-8">
-            <img src="/logo-gs.svg" alt="Dra. Gisele Santos" className="w-20 h-20 mx-auto mb-4 drop-shadow-lg" />
+            <img src="/logo-oficial.png" alt="Dra. Gisele Santos" className="w-20 h-20 mx-auto mb-4 drop-shadow-lg" />
             <h1 className="font-display text-2xl font-semibold text-dark">Dra. Gisele Santos</h1>
             <p className="text-[11px] text-[#C4956A] tracking-[0.25em] uppercase font-heading mt-1">Estética e Saúde</p>
             <p className="text-dark/30 text-xs mt-2 font-heading">Acesse o sistema</p>
