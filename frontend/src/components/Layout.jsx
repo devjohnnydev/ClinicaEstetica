@@ -46,7 +46,7 @@ export default function Layout() {
           {/* Logo */}
           <div className={`h-20 flex items-center justify-between px-6 border-b border-primary transition-all ${!sidebarOpen && sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}`}>
             <div className="flex items-center gap-3">
-              <img src="/logo-oficial.png" alt="Dra. Gisele Santos" className="w-10 h-10 shrink-0 rounded-xl" />
+              <img src="/logo-oficial.png" alt="Dra. Gisele Santos" className="h-10 w-auto shrink-0 object-contain" />
               {(!sidebarCollapsed || sidebarOpen) && (
                 <div className={`whitespace-nowrap overflow-hidden ${!sidebarOpen && sidebarCollapsed ? 'lg:hidden' : ''}`}>
                   <h1 className="font-display text-base font-semibold text-dark leading-tight">Dra. Gisele Santos</h1>
