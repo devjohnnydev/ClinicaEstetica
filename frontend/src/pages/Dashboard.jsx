@@ -62,7 +62,7 @@ export default function Dashboard() {
           Bem-vinda de volta ✨
         </h1>
         <p className="text-dark/50 mt-1 font-heading text-sm">
-          Painel de controle da clínica
+          Painel de controle — Dra. Gisele Santos
         </p>
       </div>
 

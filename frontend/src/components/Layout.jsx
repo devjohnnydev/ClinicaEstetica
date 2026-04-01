@@ -46,13 +46,11 @@ export default function Layout() {
           {/* Logo */}
           <div className={`h-20 flex items-center justify-between px-6 border-b border-primary transition-all ${!sidebarOpen && sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center shrink-0">
-                <span className="text-white font-display text-lg font-bold">CE</span>
-              </div>
+              <img src="/logo-gs.svg" alt="Dra. Gisele Santos" className="w-10 h-10 shrink-0 rounded-xl" />
               {(!sidebarCollapsed || sidebarOpen) && (
                 <div className={`whitespace-nowrap overflow-hidden ${!sidebarOpen && sidebarCollapsed ? 'lg:hidden' : ''}`}>
-                  <h1 className="font-display text-lg font-semibold text-dark leading-tight">Clínica</h1>
-                  <p className="text-xs text-accent font-heading">Estética</p>
+                  <h1 className="font-display text-base font-semibold text-dark leading-tight">Dra. Gisele Santos</h1>
+                  <p className="text-[10px] text-[#C4956A] tracking-widest uppercase font-heading">Estética e Saúde</p>
                 </div>
               )}
             </div>
@@ -124,8 +122,9 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-3 text-dark/60 hover:text-dark">
             <FiMenu size={24} />
           </button>
-          <div className="flex-1">
-            <h2 className="font-heading text-base sm:text-lg font-semibold text-dark">Clínica de Estética</h2>
+          <div className="flex-1 flex items-center gap-2">
+            <h2 className="font-heading text-base sm:text-lg font-semibold text-dark">Dra. Gisele Santos</h2>
+            <span className="hidden sm:inline text-xs text-[#C4956A] font-medium tracking-wider uppercase">Estética e Saúde</span>
           </div>
         </header>
 
