@@ -388,29 +388,46 @@ function EventCard({ ag, onClick, compact }) {
 
   return (
     <button onClick={e => { e.stopPropagation(); onClick(ag); }}
-      className="w-full h-full text-left rounded-xl overflow-hidden transition-all hover:shadow-lg hover:brightness-[0.97] flex flex-col"
+      className="w-full h-full text-left rounded-xl overflow-hidden transition-all hover:shadow-lg hover:brightness-[0.97] flex flex-col relative"
       style={{
         background: st.bgLight,
         border: `1px solid ${st.border}`,
         borderLeftWidth: '4px',
         borderLeftColor: st.bg,
       }}>
-      <div className="flex items-start gap-1.5 p-2 flex-1 min-h-0">
-        <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ background: st.bg }} />
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <p className="font-semibold text-xs truncate" style={{ color: st.text }}>{ag.cliente?.nome || '—'}</p>
-          <p className="text-[11px] text-dark/50 truncate">{ag.servico?.nome} · {ag.profissional?.nome}</p>
-          <p className="text-[10px] text-dark/40">{ag.hora_inicio?.slice(0,5)} – {ag.hora_fim?.slice(0,5)}</p>
-          {ag.observacoes && (
-            <p className="text-[10px] mt-0.5 truncate flex items-center gap-0.5" style={{ color: st.text }} title={ag.observacoes}>
-              <span className="shrink-0">📝</span>
-              <span className="truncate opacity-70">{ag.observacoes}</span>
-            </p>
-          )}
-        </div>
-        <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white shrink-0 leading-tight" style={{ background: st.bg }}>
+      
+      {/* Top section: Status badge floating right */}
+      <div className="absolute top-1.5 right-1.5">
+        <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white shadow-sm leading-tight" style={{ background: st.bg }}>
           {st.label}
         </span>
+      </div>
+
+      <div className="p-2 flex-1 flex flex-col min-h-0 bg-gradient-to-br from-white/30 to-transparent">
+        <div className="flex items-start gap-1.5 pr-14">
+          <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: st.bg }} />
+          <div className="min-w-0 overflow-hidden">
+            <p className="font-bold text-xs truncate" style={{ color: st.text }}>{ag.cliente?.nome || '—'}</p>
+            <p className="text-[10px] text-dark/60 font-medium truncate">{ag.servico?.nome} · {ag.profissional?.nome}</p>
+            <p className="text-[10px] text-dark/40 font-medium">{ag.hora_inicio?.slice(0,5)} – {ag.hora_fim?.slice(0,5)}</p>
+          </div>
+        </div>
+
+        {/* Observation prominently in the middle */}
+        {ag.observacoes && (
+          <div className="mt-1.5 flex-1 min-h-0 overflow-hidden">
+            <div 
+              className="inline-flex items-start gap-1 p-1.5 rounded-lg border border-white/20 w-full"
+              style={{ background: 'rgba(255,255,255,0.4)' }}
+              title={ag.observacoes}
+            >
+              <span className="shrink-0 text-[11px]">📝</span>
+              <span className="text-[11px] font-medium leading-snug line-clamp-2" style={{ color: st.text }}>
+                {ag.observacoes}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </button>
   );

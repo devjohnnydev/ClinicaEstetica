@@ -33,8 +33,16 @@ from routers import agenda as agenda_router
 from routers import financeiro as financeiro_router
 from routers import estoque as estoque_router
 
+from sqlalchemy import text
 # Create all tables (including new agenda tables)
 Base.metadata.create_all(bind=engine)
+
+# Auto-migrate new columns
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE modelos_anamnese ADD COLUMN riscos_procedimento TEXT;"))
+except Exception:
+    pass  # Column already exists or other error
 
 app = FastAPI(title="Clínica de Estética - API", version="1.0.0")
 
