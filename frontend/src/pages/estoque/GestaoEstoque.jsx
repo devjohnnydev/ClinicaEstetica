@@ -90,20 +90,27 @@ export default function GestaoEstoque() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-card border border-primary/40 mb-5">
+      <div 
+        className="flex gap-1 bg-white rounded-2xl p-1.5 shadow-card border border-primary/40 mb-5 overflow-x-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style>{`
+          .overflow-x-auto::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
+            className={`flex-1 shrink-0 min-w-fit px-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
               tab === t.id
                 ? 'bg-gradient-to-r from-accent/10 to-secondary/20 text-accent shadow-sm'
                 : 'text-dark/50 hover:bg-primary/30'
             }`}
           >
-            <t.icon size={15} />
-            <span className="hidden sm:inline">{t.label}</span>
-            <span className="sm:hidden">{t.label.split(' ')[0]}</span>
+            <t.icon size={15} className="shrink-0" />
+            <span>{t.label}</span>
           </button>
         ))}
       </div>
