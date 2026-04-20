@@ -23,12 +23,15 @@ from models.lista_espera import ListaEspera
 from models.lista_espera_detalhe import ListaEsperaData, ListaEsperaHorario
 from models.pagamento import Pagamento
 from models.despesa import Despesa, ParcelaDespesa, CategoriaDespesa
+# Estoque models (import so tables are created)
+from models.estoque import Produto, MovimentacaoEstoque, Fornecedor
 from services.auth import get_password_hash, get_current_user
 from services.pdf import generate_anamnese_pdf
 
 from routers import auth, pacientes, modelos, anamneses
 from routers import agenda as agenda_router
 from routers import financeiro as financeiro_router
+from routers import estoque as estoque_router
 
 # Create all tables (including new agenda tables)
 Base.metadata.create_all(bind=engine)
@@ -59,6 +62,7 @@ app.include_router(modelos.router)
 app.include_router(anamneses.router)
 app.include_router(agenda_router.router)
 app.include_router(financeiro_router.router)
+app.include_router(estoque_router.router)
 
 
 @app.get("/uploads/{subdir}/{filename}")

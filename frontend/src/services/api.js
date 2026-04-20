@@ -158,4 +158,27 @@ export const getGraficoReceitaGastos = (params) => api.get('/api/financeiro/graf
 export const getGraficoEvolucao = (params) => api.get('/api/financeiro/graficos/evolucao', { params });
 export const getGraficoDistribuicao = (params) => api.get('/api/financeiro/graficos/distribuicao-gastos', { params });
 
+// ─── Estoque ────────────────────────────────────────────────────
+// Dashboard & Indicadores
+export const getEstoqueDashboard = () => api.get('/api/estoque/dashboard');
+export const getEstoqueAlertas = () => api.get('/api/estoque/alertas');
+export const getEstoqueGrafico = (params) => api.get('/api/estoque/graficos/entradas-saidas', { params });
+
+// Produtos
+export const getProdutosEstoque = (params) => api.get('/api/estoque/produtos', { params });
+export const getProdutoEstoque = (id) => api.get(`/api/estoque/produtos/${id}`);
+export const criarProdutoEstoque = (data) => api.post('/api/estoque/produtos', data);
+export const atualizarProdutoEstoque = (id, data) => api.put(`/api/estoque/produtos/${id}`, data);
+export const deletarProdutoEstoque = (id) => api.delete(`/api/estoque/produtos/${id}`);
+
+// Movimentações
+export const getMovimentacoes = (params) => api.get('/api/estoque/movimentacoes', { params });
+export const criarMovimentacao = (data) => api.post('/api/estoque/movimentacoes', data);
+
+// Fornecedores
+export const getFornecedores = (params) => api.get('/api/estoque/fornecedores', { params });
+export const criarFornecedor = (data) => api.post('/api/estoque/fornecedores', data);
+export const atualizarFornecedor = (id, data) => api.put(`/api/estoque/fornecedores/${id}`, data);
+export const deletarFornecedor = (id) => api.delete(`/api/estoque/fornecedores/${id}`);
+
 export default api;
