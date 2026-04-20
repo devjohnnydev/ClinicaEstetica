@@ -371,24 +371,26 @@ export default function Agenda() {
 /* ═══════════════════════════════════════════════════════════
    EVENT CARD  — fills 100% parent height
    ═══════════════════════════════════════════════════════════ */
-function EventCard({ ag, onClick, compact }) {
+function EventCard({ ag, onClick, compact, isWide }) {
   const st = getStatus(ag.status);
 
   if (compact) {
     return (
       <button onClick={e => { e.stopPropagation(); onClick(ag); }}
-        className="w-full text-left px-2 py-1 rounded-lg text-[11px] leading-tight truncate transition-all hover:brightness-95"
+        className="w-full text-left px-2 py-1 rounded-lg text-[11px] leading-tight truncate transition-all hover:brightness-95 flex items-center pr-12 relative"
         style={{ background: st.bgLight, color: st.text, borderLeft: `3px solid ${st.bg}` }}>
-        <span className="font-bold">{ag.hora_inicio?.slice(0,5)}</span>{' '}
-        {ag.cliente?.nome?.split(' ')[0]}
-        {ag.observacoes && <span title={ag.observacoes}> 📝</span>}
+        <div className="flex-1 truncate">
+          <span className="font-bold">{ag.hora_inicio?.slice(0,5)}</span>{' '}
+          {ag.cliente?.nome?.split(' ')[0]}
+          {ag.observacoes && <span title={ag.observacoes} className="opacity-80 ml-1">📝 {ag.observacoes}</span>}
+        </div>
       </button>
     );
   }
 
   return (
     <button onClick={e => { e.stopPropagation(); onClick(ag); }}
-      className="w-full h-full text-left rounded-xl overflow-hidden transition-all hover:shadow-lg hover:brightness-[0.97] flex flex-col relative"
+      className={`w-full h-full text-left rounded-xl overflow-hidden transition-all hover:shadow-lg hover:brightness-[0.97] flex relative ${isWide ? 'flex-row items-center' : 'flex-col'}`}
       style={{
         background: st.bgLight,
         border: `1px solid ${st.border}`,
@@ -397,14 +399,15 @@ function EventCard({ ag, onClick, compact }) {
       }}>
       
       {/* Top section: Status badge floating right */}
-      <div className="absolute top-1.5 right-1.5">
+      <div className="absolute top-1.5 right-1.5 z-10">
         <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white shadow-sm leading-tight" style={{ background: st.bg }}>
           {st.label}
         </span>
       </div>
 
-      <div className="p-2 flex-1 flex flex-col min-h-0 bg-gradient-to-br from-white/30 to-transparent">
-        <div className="flex items-start gap-1.5 pr-14">
+      <div className={`p-2 flex-1 flex bg-gradient-to-br from-white/30 to-transparent min-h-0 min-w-0 h-full w-full ${isWide ? 'flex-row items-center gap-4' : 'flex-col'}`}>
+        
+        <div className={`flex items-start gap-1.5 ${isWide ? 'w-fit max-w-[35%] shrink-0' : 'pr-14'}`}>
           <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: st.bg }} />
           <div className="min-w-0 overflow-hidden">
             <p className="font-bold text-xs truncate" style={{ color: st.text }}>{ag.cliente?.nome || '—'}</p>
@@ -415,14 +418,14 @@ function EventCard({ ag, onClick, compact }) {
 
         {/* Observation prominently in the middle */}
         {ag.observacoes && (
-          <div className="mt-1.5 flex-1 min-h-0 overflow-hidden">
+          <div className={`${isWide ? 'flex-1 min-w-0 h-full flex items-center pr-20 overflow-hidden' : 'mt-1.5 flex-1 min-h-0 overflow-hidden w-full'}`}>
             <div 
-              className="inline-flex items-start gap-1 p-1.5 rounded-lg border border-white/20 w-full"
+              className={`inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-white/30 w-full ${isWide ? 'max-h-full' : ''}`}
               style={{ background: 'rgba(255,255,255,0.4)' }}
               title={ag.observacoes}
             >
-              <span className="shrink-0 text-[11px]">📝</span>
-              <span className="text-[11px] font-medium leading-snug line-clamp-2" style={{ color: st.text }}>
+              <span className={`shrink-0 ${isWide ? 'text-xs' : 'text-[11px]'}`}>📝</span>
+              <span className={`text-[11px] font-medium leading-snug w-full ${isWide ? 'line-clamp-3' : 'line-clamp-2'}`} style={{ color: st.text }}>
                 {ag.observacoes}
               </span>
             </div>
@@ -516,7 +519,7 @@ function DayView({ date, agendamentos, bloqueios, bloqueiosGlobais = [], slotH, 
           return (
             <div key={ag.id} className="absolute z-[2]"
               style={{ top: top + 1, height: h - 2, left: 'calc(3rem + 4px)', right: '4px' }}>
-              <EventCard ag={ag} onClick={onClickEvent} />
+              <EventCard ag={ag} onClick={onClickEvent} isWide={true} />
             </div>
           );
         })}
