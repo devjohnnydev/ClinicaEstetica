@@ -381,6 +381,7 @@ function EventCard({ ag, onClick, compact }) {
         style={{ background: st.bgLight, color: st.text, borderLeft: `3px solid ${st.bg}` }}>
         <span className="font-bold">{ag.hora_inicio?.slice(0,5)}</span>{' '}
         {ag.cliente?.nome?.split(' ')[0]}
+        {ag.observacoes && <span title={ag.observacoes}> 📝</span>}
       </button>
     );
   }
@@ -400,6 +401,12 @@ function EventCard({ ag, onClick, compact }) {
           <p className="font-semibold text-xs truncate" style={{ color: st.text }}>{ag.cliente?.nome || '—'}</p>
           <p className="text-[11px] text-dark/50 truncate">{ag.servico?.nome} · {ag.profissional?.nome}</p>
           <p className="text-[10px] text-dark/40">{ag.hora_inicio?.slice(0,5)} – {ag.hora_fim?.slice(0,5)}</p>
+          {ag.observacoes && (
+            <p className="text-[10px] mt-0.5 truncate flex items-center gap-0.5" style={{ color: st.text }} title={ag.observacoes}>
+              <span className="shrink-0">📝</span>
+              <span className="truncate opacity-70">{ag.observacoes}</span>
+            </p>
+          )}
         </div>
         <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white shrink-0 leading-tight" style={{ background: st.bg }}>
           {st.label}

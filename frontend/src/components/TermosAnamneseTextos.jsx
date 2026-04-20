@@ -19,7 +19,9 @@ function MetaLinha({ local, dataHora }) {
 }
 
 /** Termo 1 — consentimento (obrigatório) */
-export function TermoConsentimentoBloco({ nome, cpf, procedimento, local, dataHoraPreview }) {
+export function TermoConsentimentoBloco({ nome, cpf, procedimento, riscos, local, dataHoraPreview }) {
+  const textoRiscos = riscos || 'edema, eritema, hematomas, dor local, assimetrias, reações alérgicas e resultados que podem diferir do esperado';
+
   return (
     <div className="rounded-2xl border border-secondary/40 bg-white p-4 sm:p-5 space-y-3 text-sm text-dark/90 leading-relaxed">
       <div className="border-b border-accent/20 pb-3">
@@ -38,8 +40,7 @@ export function TermoConsentimentoBloco({ nome, cpf, procedimento, local, dataHo
       </p>
       <p>
         Recebi explicações sobre objetivos, benefícios esperados, riscos e efeitos adversos possíveis, incluindo, entre
-        outros: edema, eritema, hematomas, dor local, assimetrias, reações alérgicas e resultados que podem diferir do
-        esperado.
+        outros: <span className="font-medium text-dark">{textoRiscos}</span>.
       </p>
       <p>
         Estou ciente de que os resultados dependem de fatores individuais e do cumprimento das orientações pré e

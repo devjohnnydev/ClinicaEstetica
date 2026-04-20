@@ -38,6 +38,7 @@ def criar_modelo(
     db_modelo = ModeloAnamnese(
         nome_procedimento=modelo.nome_procedimento,
         descricao=modelo.descricao,
+        riscos_procedimento=modelo.riscos_procedimento,
         rosto_modelo_tipo=modelo.rosto_modelo_tipo,
     )
     db.add(db_modelo)
@@ -61,6 +62,7 @@ def criar_modelo(
         id=db_modelo.id,
         nome_procedimento=db_modelo.nome_procedimento,
         descricao=db_modelo.descricao,
+        riscos_procedimento=db_modelo.riscos_procedimento,
         rosto_modelo_tipo=db_modelo.rosto_modelo_tipo,
         created_at=db_modelo.created_at,
         campos=[CampoModeloResponse.model_validate(c) for c in db_modelo.campos],
@@ -81,6 +83,7 @@ def obter_modelo(
         id=modelo.id,
         nome_procedimento=modelo.nome_procedimento,
         descricao=modelo.descricao,
+        riscos_procedimento=modelo.riscos_procedimento,
         rosto_modelo_tipo=modelo.rosto_modelo_tipo,
         created_at=modelo.created_at,
         campos=[CampoModeloResponse.model_validate(c) for c in modelo.campos],
@@ -103,6 +106,8 @@ def atualizar_modelo(
         modelo.nome_procedimento = data.nome_procedimento
     if data.descricao is not None:
         modelo.descricao = data.descricao
+    if "riscos_procedimento" in data.model_dump(exclude_unset=True):
+        modelo.riscos_procedimento = data.riscos_procedimento
     if "rosto_modelo_tipo" in data.model_dump(exclude_unset=True):
         modelo.rosto_modelo_tipo = data.rosto_modelo_tipo
 

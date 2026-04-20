@@ -30,6 +30,7 @@ export default function BuilderModelo() {
 
   const [nomeProcedimento, setNomeProcedimento] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [riscosProcedimento, setRiscosProcedimento] = useState('');
   const [rostoModeloTipo, setRostoModeloTipo] = useState('');
   const [campos, setCampos] = useState([emptyField()]);
   const [saving, setSaving] = useState(false);
@@ -44,6 +45,7 @@ export default function BuilderModelo() {
           const m = res.data;
           setNomeProcedimento(m.nome_procedimento);
           setDescricao(m.descricao || '');
+          setRiscosProcedimento(m.riscos_procedimento || '');
           setRostoModeloTipo(m.rosto_modelo_tipo || '');
           setCampos(m.campos.map(c => ({ ...c, _id: c.id || Date.now() + Math.random() })));
         })
@@ -128,6 +130,7 @@ export default function BuilderModelo() {
       const payload = {
         nome_procedimento: nomeProcedimento,
         descricao: descricao || null,
+        riscos_procedimento: riscosProcedimento || null,
         rosto_modelo_tipo: rostoModeloTipo || null,
         campos: campos.map((c, i) => ({
           tipo: c.tipo,
@@ -199,7 +202,7 @@ export default function BuilderModelo() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-dark/60 mb-2">Descrição (opcional)</label>
+          <label className="block text-sm font-medium text-dark/60 mb-2">Descrição complementar (opcional)</label>
           <textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
@@ -207,6 +210,19 @@ export default function BuilderModelo() {
             rows={2}
             className="w-full px-4 py-3 rounded-2xl border border-secondary/50 bg-soft/50 focus:bg-white focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all text-dark placeholder:text-dark/30 resize-none"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-dark/60 mb-2">Riscos do Procedimento (Termo de Consentimento)</label>
+          <textarea
+            value={riscosProcedimento}
+            onChange={(e) => setRiscosProcedimento(e.target.value)}
+            placeholder="Ex: edema, eritema, hematomas, dor local, assimetrias..."
+            rows={3}
+            className="w-full px-4 py-3 rounded-2xl border border-secondary/50 bg-soft/50 focus:bg-white focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all text-dark placeholder:text-dark/30 resize-none"
+          />
+          <p className="text-xs text-dark/40 mt-1">
+            Este texto será exibido dinamicamente no parágrafo sobre riscos do Termo de Consentimento para este modelo.
+          </p>
         </div>
       </div>
 

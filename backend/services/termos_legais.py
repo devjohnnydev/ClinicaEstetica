@@ -18,8 +18,9 @@ def local_atendimento_padrao() -> str:
     return getattr(settings, "CLINICA_LOCAL_ATENDIMENTO", None) or "Estabelecimento de saúde / registro eletrônico da clínica"
 
 
-def html_termo_consentimento(*, nome: str, cpf: str, procedimento: str) -> str:
+def html_termo_consentimento(*, nome: str, cpf: str, procedimento: str, riscos: str = None) -> str:
     n, c, p = esc(nome), esc(cpf), esc(procedimento)
+    r = esc(riscos) if riscos else "edema (inchaço), eritema (vermelhidão), hematomas, dor ou desconforto local, assimetrias transitórias ou persistentes, reações alérgicas e resultados que podem diferir das expectativas inicialmente discutidas"
     return f"""
     <b>TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA PROCEDIMENTOS ESTÉTICOS</b>
     <br/><br/>
@@ -30,8 +31,7 @@ def html_termo_consentimento(*, nome: str, cpf: str, procedimento: str) -> str:
     <br/><br/>
     Declaro que recebi orientações acerca da natureza do procedimento, seus objetivos, benefícios esperados,
     bem como possíveis riscos, intercorrências e efeitos adversos, que podem incluir, entre outros:
-    edema (inchaço), eritema (vermelhidão), hematomas, dor ou desconforto local, assimetrias transitórias ou persistentes,
-    reações alérgicas e resultados que podem diferir das expectativas inicialmente discutidas.
+    <b>{r}</b>.
     <br/><br/>
     Fui informado(a) de que os resultados variam conforme características individuais (metabolismo, estilo de vida,
     cumprimento das orientações pré e pós-procedimento e condições clínicas pré-existentes).

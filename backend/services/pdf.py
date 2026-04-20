@@ -410,6 +410,7 @@ def generate_anamnese_pdf(anamnese, db) -> bytes:
             nome=pac.nome or "—",
             cpf=pac.cpf or "—",
             procedimento=proc_nome,
+            riscos=anamnese.modelo.riscos_procedimento if anamnese.modelo else None,
         ), styles['TermoBody']))
         dt_consent = _format_local_datetime(consent_sig.created_at)
         elements.append(Paragraph(

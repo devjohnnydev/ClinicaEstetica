@@ -26,6 +26,7 @@ class CampoModeloResponse(CampoModeloBase):
 class ModeloBase(BaseModel):
     nome_procedimento: str
     descricao: Optional[str] = None
+    riscos_procedimento: Optional[str] = None
     rosto_modelo_tipo: Optional[Literal["muscular", "positionsfem"]] = None
 
 
@@ -36,6 +37,7 @@ class ModeloCreate(ModeloBase):
 class ModeloUpdate(BaseModel):
     nome_procedimento: Optional[str] = None
     descricao: Optional[str] = None
+    riscos_procedimento: Optional[str] = None
     rosto_modelo_tipo: Optional[Literal["muscular", "positionsfem"]] = None
     campos: Optional[List[CampoModeloCreate]] = None
 
@@ -54,6 +56,7 @@ class ModeloListResponse(BaseModel):
     id: int
     nome_procedimento: str
     descricao: Optional[str] = None
+    riscos_procedimento: Optional[str] = None
     rosto_modelo_tipo: Optional[Literal["muscular", "positionsfem"]] = None
     created_at: Optional[datetime] = None
     total_campos: int = 0

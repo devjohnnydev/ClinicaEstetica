@@ -606,6 +606,7 @@ export default function NovaAnamnese() {
               nome={pacienteNome}
               cpf={pacienteCpf}
               procedimento={nomeProcedimento}
+              riscos={modeloCompleto?.riscos_procedimento}
               local={CLINICA_LOCAL}
               dataHoraPreview={dataHoraRef}
             />
