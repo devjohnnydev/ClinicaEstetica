@@ -91,10 +91,21 @@ export default function PastaPaciente() {
     setSavingEdit(false);
   };
 
-  if (loading) {
+  if (loading && !paciente) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 border-3 border-accent/30 border-t-accent rounded-full animate-spin" />
+      <div className="space-y-6 animate-pulse">
+        <div className="bg-white rounded-3xl p-6 shadow-card h-[200px]">
+          <div className="h-6 w-32 bg-dark/10 rounded-lg mb-6"></div>
+          <div className="flex gap-6">
+            <div className="h-24 w-24 bg-dark/5 rounded-3xl shrink-0"></div>
+            <div className="flex-1 space-y-3">
+              <div className="h-8 w-1/2 bg-dark/10 rounded-lg"></div>
+              <div className="h-4 w-1/4 bg-dark/5 rounded-lg"></div>
+              <div className="h-4 w-1/3 bg-dark/5 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-3xl shadow-card h-[300px]"></div>
       </div>
     );
   }

@@ -55,8 +55,17 @@ export default function Pacientes() {
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-3 border-accent/30 border-t-accent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="bg-white/60 rounded-3xl p-5 h-[100px] animate-pulse flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-dark/10 shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 bg-dark/10 rounded w-3/4"></div>
+                <div className="h-3 bg-dark/5 rounded w-1/2"></div>
+                <div className="h-3 bg-dark/5 rounded w-1/3"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : pacientes.length === 0 ? (
         <div className="text-center py-16">

@@ -51,8 +51,18 @@ export default function ModelosAnamnese() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-3 border-accent/30 border-t-accent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="bg-white/60 rounded-3xl p-6 h-[200px] animate-pulse flex flex-col">
+              <div className="h-6 bg-dark/10 rounded-lg w-2/3 mb-3"></div>
+              <div className="h-4 bg-dark/5 rounded-lg w-full mb-2"></div>
+              <div className="h-4 bg-dark/5 rounded-lg w-4/5 mb-6"></div>
+              <div className="mt-auto flex gap-2">
+                <div className="h-8 bg-dark/10 rounded-xl w-24"></div>
+                <div className="h-8 bg-dark/5 rounded-xl w-8"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : modelos.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl shadow-card">
