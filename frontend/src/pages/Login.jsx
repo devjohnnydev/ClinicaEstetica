@@ -40,10 +40,9 @@ export default function Login() {
         {/* Card */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-elegant p-8 md:p-10 border border-white/50">
           {/* Logo */}
-          <div className="text-center mb-8">
-            <img src="/logo-oficial.png" alt="Dra. Gisele Santos" className="h-24 w-auto mx-auto mb-4 drop-shadow-lg object-contain" />
-            <h1 className="font-display text-2xl font-semibold text-dark">Dra. Gisele Santos</h1>
-            <p className="text-[11px] text-[#C4956A] tracking-[0.25em] uppercase font-heading mt-1">Estética e Saúde</p>
+          <div className="text-center mb-8 flex flex-col items-center">
+            <img src="/logo-oficial.png" alt="Dra. Gisele Santos Logo" className="h-24 w-auto mx-auto mb-4 drop-shadow-lg object-contain" />
+            <img src="/texto_logo.png" alt="Dra. Gisele Santos - Estética e Saúde" className="h-10 w-auto object-contain mb-1" />
             <p className="text-dark/30 text-xs mt-2 font-heading">Acesse o sistema</p>
           </div>
 

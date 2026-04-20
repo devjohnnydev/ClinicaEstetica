@@ -49,9 +49,8 @@ export default function Layout() {
             <div className="flex items-center gap-3">
               <img src="/logo-oficial.png" alt="Dra. Gisele Santos" className="h-10 w-auto shrink-0 object-contain" />
               {(!sidebarCollapsed || sidebarOpen) && (
-                <div className={`whitespace-nowrap overflow-hidden ${!sidebarOpen && sidebarCollapsed ? 'lg:hidden' : ''}`}>
-                  <h1 className="font-display text-base font-semibold text-dark leading-tight">Dra. Gisele Santos</h1>
-                  <p className="text-[10px] text-[#C4956A] tracking-widest uppercase font-heading">Estética e Saúde</p>
+                <div className={`whitespace-nowrap overflow-hidden flex items-center ${!sidebarOpen && sidebarCollapsed ? 'lg:hidden' : ''}`}>
+                  <img src="/texto_logo.png" alt="Dra. Gisele Santos - Estética e Saúde" className="h-9 w-auto object-contain translate-y-1" />
                 </div>
               )}
             </div>
